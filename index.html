@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>טסים לפועלים סנטר – Flying to Poalim Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Monoton&display=swap" rel="stylesheet" />
+<style>
+  :root { --pink: #ff2bd6; --cyan: #00f0ff; --gold: #ffd23f; --neon-green: #39ff14; --night: #1a0933; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
+  canvas { display: block; }
+  .hud { position: fixed; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
+  #stats { top: 14px; left: 14px; background: rgba(25,0,45,.6); padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.6; min-width: 170px;
+    border: 1px solid var(--pink); box-shadow: 0 0 12px rgba(255,43,214,.6), inset 0 0 10px rgba(255,43,214,.25); }
+  #stats b { display: inline-block; width: 78px; opacity: .85; font-weight: 500; color: #ffb3f0; }
+  #thrBar, #fuelBar { display: inline-block; width: 80px; height: 8px; background: rgba(255,255,255,.2); border-radius: 4px; vertical-align: middle; overflow: hidden; }
+  #thrFill { height: 100%; width: 60%; background: linear-gradient(90deg, var(--cyan), var(--pink)); box-shadow: 0 0 6px var(--pink); }
+  #fuelFill { height: 100%; width: 100%; background: var(--neon-green); box-shadow: 0 0 6px currentColor; transition: background .3s; }
+  #fuelPct { display: inline-block; width: 38px; text-align: right; font-size: 12px; margin-left: 4px; }
+  .lowfuel #fuelBar { animation: blink .5s steps(2) infinite; }
+  #score { top: 14px; right: 14px; text-align: right; font-size: 15px; background: rgba(25,0,45,.6); padding: 10px 14px; border-radius: 10px; line-height: 1.6;
+    border: 1px solid var(--cyan); box-shadow: 0 0 12px rgba(0,240,255,.55), inset 0 0 10px rgba(0,240,255,.2); }
+  #score .big { font-family: Bungee, system-ui, sans-serif; font-size: 30px; color: var(--gold); text-shadow: 0 0 8px var(--gold), 0 0 18px #ff8c00; }
+  #msg { top: 36%; left: 0; right: 0; text-align: center; font-family: Bungee, system-ui, sans-serif; font-size: 40px; letter-spacing: 1px; opacity: 0; transition: opacity .3s;
+    color: #fff; text-shadow: 0 0 6px #fff, 0 0 14px var(--pink), 0 0 28px var(--pink), 0 0 42px var(--pink); }
+  #warn, #fuelWarn { left: 0; right: 0; text-align: center; font-family: Bungee, system-ui, sans-serif; font-size: 26px; display: none; animation: blink .5s steps(2) infinite; }
+  #warn { top: 58%; color: #ff4757; text-shadow: 0 0 10px #ff4757; }
+  #fuelWarn { top: 65%; color: #ffa502; text-shadow: 0 0 10px #ffa502; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #hint { bottom: 12px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .85; }
+  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; overflow: auto;
+    background: radial-gradient(circle at 50% 30%, rgba(120,20,140,.65), rgba(10,0,30,.92)); }
+  #panel { color: #fff; text-align: center; max-width: 560px; padding: 26px 28px; margin: 16px; border-radius: 22px; background: rgba(20,0,40,.55);
+    border: 7px dotted var(--gold); animation: marquee 0.6s steps(2) infinite; box-shadow: 0 0 24px rgba(255,210,63,.55), inset 0 0 24px rgba(255,43,214,.35); }
+  @keyframes marquee { 0% { border-color: var(--gold); } 50% { border-color: #fff6c9; } }
+  #panel .vegas { font-family: Monoton, Bungee, system-ui, sans-serif; font-size: 30px; color: var(--cyan); letter-spacing: 4px; margin-bottom: 4px;
+    text-shadow: 0 0 6px var(--cyan), 0 0 18px var(--cyan); animation: flicker 4s infinite; }
+  @keyframes flicker { 0%, 18%, 22%, 62%, 64%, 100% { opacity: 1; } 20%, 63% { opacity: .35; } }
+  #panel h1 { font-size: 42px; margin: 0 0 6px; letter-spacing: 1px; color: #fff; text-shadow: 0 0 6px #fff, 0 0 16px var(--pink), 0 0 32px var(--pink); }
+  #panel p { opacity: .9; margin: 0 0 14px; }
+  #panel .sub { font-family: Bungee, system-ui, sans-serif; font-size: 16px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); text-shadow: 0 0 10px #ff8c00; margin-bottom: 14px; }
+  #panel .heb { font-size: 18px; opacity: 1; }
+  #board { letter-spacing: 1px; }
+  #panel table { margin: 0 auto 22px; border-collapse: collapse; font-size: 14px; text-align: left; }
+  #panel td { padding: 3px 10px; }
+  #panel td:first-child { font-weight: 700; color: var(--gold); text-align: right; }
+  #startBtn { font-family: Bungee, system-ui, sans-serif; font-size: 19px; padding: 14px 36px; border: 0; border-radius: 40px; background: linear-gradient(180deg, #ffe680, #ffb000); color: #3a0a3a; cursor: pointer;
+    box-shadow: 0 0 18px rgba(255,210,63,.8), 0 6px 20px rgba(0,0,0,.4); }
+  #startBtn:hover, #demoBtn:hover { transform: scale(1.05); }
+  #demoBtn { font-family: Bungee, system-ui, sans-serif; font-size: 16px; padding: 13px 28px; margin: 10px 0 0 10px; border: 2px solid var(--cyan); border-radius: 40px; background: transparent; color: var(--cyan); cursor: pointer;
+    box-shadow: 0 0 12px rgba(0,240,255,.6); text-shadow: 0 0 8px var(--cyan); }
+  #demoBar { display: none; bottom: 34px; left: 50%; transform: translateX(-50%); text-align: center; background: rgba(25,0,45,.7); padding: 10px 22px; border-radius: 14px; max-width: 90vw;
+    border: 1px solid var(--pink); box-shadow: 0 0 12px rgba(255,43,214,.5); }
+  #demoBar .tag { display: inline-block; background: var(--pink); font-weight: 800; font-size: 12px; letter-spacing: 2px; padding: 2px 10px; border-radius: 10px; margin-bottom: 6px; }
+  #demoCaption { font-size: 19px; font-weight: 700; }
+  #demoBar .small { font-size: 12px; opacity: .75; margin-top: 4px; }
+  /* touch controls */
+  #touch { display: none; }
+  .touch #touch { display: block; }
+  .touch #hint { display: none; }
+  #joy { position: fixed; left: 28px; bottom: 28px; width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid var(--pink); box-shadow: 0 0 12px rgba(255,43,214,.5); }
+  #knob { position: absolute; left: 40px; top: 40px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.7); }
+  .tbtn { position: fixed; right: 28px; width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid var(--cyan); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px rgba(0,240,255,.5); }
+  #thrUp { bottom: 120px; } #thrDn { bottom: 30px; }
+  #camBtn { position: fixed; right: 110px; bottom: 30px; width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid var(--cyan); color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div id="stats" class="hud">
+  <div><b>Speed</b><span id="spd">0</span> kt</div>
+  <div><b>Altitude</b><span id="alt">0</span> ft</div>
+  <div><b>Throttle</b><span id="thrBar"><div id="thrFill"></div></span></div>
+  <div id="fuelRow"><b>Fuel ⛽</b><span id="fuelBar"><div id="fuelFill"></div></span><span id="fuelPct">100%</span></div>
+  <div><b>View</b><span id="view">Chase</span></div>
+  <div><b>On board</b><span id="board"></span></div>
+  <div><b>Plane</b><span id="planeName"></span></div>
+  <div><b>Upgrade</b><span id="upg"></span></div>
+</div>
+<div id="score" class="hud">
+  <div dir="rtl">הגיעו לפועלים סנטר</div>
+  <div class="big" id="scoreVal">0</div>
+  <div style="font-size:12px;opacity:.8">Logos: <span id="logoVal">0</span> · Best: <span id="best">0</span></div>
+</div>
+<div id="msg" class="hud" dir="auto"></div>
+<div id="warn" class="hud">PULL UP!</div>
+<div id="fuelWarn" class="hud">⛽ LOW FUEL – GRAB A FUEL CAN!</div>
+<div id="demoBar" class="hud">
+  <div class="tag">▶ DEMO</div>
+  <div id="demoCaption" dir="auto"></div>
+  <div class="small">Press any key or tap to take control</div>
+</div>
+<div id="hint" class="hud">W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle · C camera · ⛽ grab fuel cans · I invert · N music · M mute · P pause</div>
+
+<div id="touch">
+  <div id="joy"><div id="knob"></div></div>
+  <div id="thrUp" class="tbtn">▲</div>
+  <div id="thrDn" class="tbtn">▼</div>
+  <div id="camBtn">CAM</div>
+</div>
+
+<div id="overlay">
+  <div id="panel">
+    <div class="vegas">VEGAS NIGHTS</div>
+    <h1 dir="rtl">✈ טסים לפועלים סנטר</h1>
+    <div class="sub">★ Flying to Poalim Center ★</div>
+    <p dir="rtl" class="heb">בנק הפועלים עובר לבית החדש! אספו את העובדים וטוסו איתם לפועלים סנטר.</p>
+    <p>Pick up employees waiting under the <b style="color:#2ecc71">green beacons</b> in the villages (up to 6 per flight)
+      and fly them through the <b style="color:#ff6b6b">red arrival gate</b> at the new Poalim Center HQ.
+      Follow the arrow.<br>Every <b style="color:#ffd166">2 floating logos</b> upgrade your plane to a bigger one with more seats:
+      6 → 10 → 16 → 24.</p>
+    <p>⛽ <b style="color:#39ff14">Watch your fuel!</b> The engine burns fuel, faster at full throttle and in bigger planes.
+      Fly through the glowing <b style="color:#39ff14">FUEL cans</b> to refill the tank. When it runs dry the engine quits:
+      dive to keep your speed and glide to the nearest can.</p>
+    <table>
+      <tr><td>W / S or ↑ / ↓</td><td>Pitch (nose down / up)</td></tr>
+      <tr><td>A / D or ← / →</td><td>Roll (bank to turn)</td></tr>
+      <tr><td>Q / E</td><td>Rudder (yaw)</td></tr>
+      <tr><td>Shift / Ctrl (or R / F)</td><td>Throttle up / down</td></tr>
+      <tr><td>C</td><td>Switch camera</td></tr>
+      <tr><td>N</td><td>Music on / off</td></tr>
+      <tr><td>I · M · P</td><td>Invert pitch · Mute all · Pause</td></tr>
+    </table>
+    <button id="startBtn">Take Off · ממריאים</button>
+    <button id="demoBtn">▶ Watch Demo</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+
+// ---------------------------------------------------------------- constants
+const R = 100;              // planet radius (sea level)
+const MAX_ALT = 90;         // ceiling above sea level
+const V = THREE.Vector3;
+const X_AXIS = new V(1, 0, 0), Y_AXIS = new V(0, 1, 0), Z_AXIS = new V(0, 0, 1);
+const clamp = THREE.MathUtils.clamp, damp = THREE.MathUtils.damp;
+
+// ---------------------------------------------------------------- noise
+const perm = new Uint8Array(512);
+(() => {
+  const p = [...Array(256).keys()];
+  let s = 1337;
+  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 255; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
+  for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+})();
+const fade = t => t * t * t * (t * (t * 6 - 15) + 10);
+const lerp = (a, b, t) => a + (b - a) * t;
+function grad(h, x, y, z) {
+  h &= 15;
+  const u = h < 8 ? x : y, v = h < 4 ? y : (h === 12 || h === 14 ? x : z);
+  return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+}
+function noise3(x, y, z) {
+  const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+  x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+  const u = fade(x), v = fade(y), w = fade(z);
+  const A = perm[X] + Y, AA = perm[A] + Z, AB = perm[A + 1] + Z;
+  const B = perm[X + 1] + Y, BA = perm[B] + Z, BB = perm[B + 1] + Z;
+  return lerp(
+    lerp(lerp(grad(perm[AA], x, y, z), grad(perm[BA], x - 1, y, z), u),
+         lerp(grad(perm[AB], x, y - 1, z), grad(perm[BB], x - 1, y - 1, z), u), v),
+    lerp(lerp(grad(perm[AA + 1], x, y, z - 1), grad(perm[BA + 1], x - 1, y, z - 1), u),
+         lerp(grad(perm[AB + 1], x, y - 1, z - 1), grad(perm[BB + 1], x - 1, y - 1, z - 1), u), v), w);
+}
+function fbm(x, y, z) {
+  let a = 1, f = 1, s = 0, n = 0;
+  for (let o = 0; o < 5; o++) { s += a * noise3(x * f, y * f, z * f); n += a; a *= 0.5; f *= 2.03; }
+  return s / n;
+}
+// elevation above sea level for a unit direction (negative = under water)
+function elevation(d) {
+  const e = fbm(d.x * 1.7 + 3.1, d.y * 1.7 - 1.3, d.z * 1.7 + 7.7) * 2.2 + 0.08;
+  return e > 0 ? Math.pow(e, 1.5) * 24 : e * 14;
+}
+const groundRadius = d => R + Math.max(0, elevation(d));
+
+function randomDir() {
+  const u = Math.random() * 2 - 1, t = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+  return new V(s * Math.cos(t), u, s * Math.sin(t));
+}
+
+// ---------------------------------------------------------------- renderer / scene
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const SKY = new THREE.Color(0x2b1055); // Vegas dusk
+const scene = new THREE.Scene();
+scene.background = SKY;
+scene.fog = new THREE.Fog(SKY, 90, 380);
+
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 3000);
+
+scene.add(new THREE.HemisphereLight(0xb89cff, 0x3a2030, 0.8));
+const sunDir = new V(0.6, 0.7, 0.4).normalize();
+const sunLight = new THREE.DirectionalLight(0xffb38a, 1.3); // low sunset light
+sunLight.position.copy(sunDir).multiplyScalar(500);
+scene.add(sunLight);
+scene.add(new THREE.AmbientLight(0xff9ae6, 0.3));
+
+// sun & moon (not fogged so they're visible from anywhere)
+const sun = new THREE.Mesh(new THREE.SphereGeometry(30, 24, 16), new THREE.MeshBasicMaterial({ color: 0xff8a5c, fog: false }));
+sun.position.copy(sunDir).multiplyScalar(1400);
+scene.add(sun);
+
+// starfield
+{
+  const N = 1800, pts = new Float32Array(N * 3), cols = new Float32Array(N * 3), c = new THREE.Color();
+  for (let i = 0; i < N; i++) {
+    randomDir().multiplyScalar(1500 + Math.random() * 400).toArray(pts, i * 3);
+    c.setHSL(Math.random() < 0.8 ? 0.15 : 0.85, 0.6, 0.75 + Math.random() * 0.25).toArray(cols, i * 3);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, vertexColors: true, fog: false })));
+}
+const moonPivot = new THREE.Object3D();
+scene.add(moonPivot);
+const moon = new THREE.Mesh(new THREE.IcosahedronGeometry(14, 1),
+  new THREE.MeshStandardMaterial({ color: 0xd8d8e0, flatShading: true, fog: false }));
+moon.position.set(0, 0, 420);
+moonPivot.add(moon);
+moonPivot.rotation.x = 0.4;
+
+// ---------------------------------------------------------------- planet terrain
+{
+  const geo = new THREE.IcosahedronGeometry(1, 40); // non-indexed → flat low-poly faces
+  const pos = geo.attributes.position;
+  const elev = new Float32Array(pos.count);
+  const d = new V();
+  for (let i = 0; i < pos.count; i++) {
+    d.fromBufferAttribute(pos, i).normalize();
+    elev[i] = elevation(d);
+    d.multiplyScalar(R + elev[i]);
+    pos.setXYZ(i, d.x, d.y, d.z);
+  }
+  const colors = new Float32Array(pos.count * 3);
+  const c = new THREE.Color();
+  const pal = {
+    deep: new THREE.Color(0x8a6f5a), sand: new THREE.Color(0xf0c987), grass: new THREE.Color(0xd4a062), // Mojave desert
+    grass2: new THREE.Color(0xa86a3e), rock: new THREE.Color(0x8a4b3a), snow: new THREE.Color(0xf7f0fb),
+  };
+  for (let f = 0; f < pos.count; f += 3) {
+    const e = (elev[f] + elev[f + 1] + elev[f + 2]) / 3;
+    if (e < 0) c.copy(pal.deep);
+    else if (e < 0.7) c.copy(pal.sand);
+    else if (e < 8) c.copy(pal.grass).lerp(pal.grass2, clamp((e - 0.7) / 7, 0, 1));
+    else if (e < 15) c.copy(pal.rock);
+    else c.copy(pal.snow);
+    const jitter = 0.93 + Math.random() * 0.12;
+    c.multiplyScalar(jitter);
+    for (let k = 0; k < 3; k++) colors.set([c.r, c.g, c.b], (f + k) * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  scene.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95 })));
+}
+
+// ---------------------------------------------------------------- ocean with gentle waves
+const ocean = (() => {
+  const geo = new THREE.IcosahedronGeometry(R, 18);
+  const base = geo.attributes.position.array.slice();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    color: 0x1f6fb8, transparent: true, opacity: 0.85, flatShading: true, roughness: 0.25, metalness: 0.1,
+  }));
+  scene.add(mesh);
+  return { mesh, base };
+})();
+function updateOcean(t) {
+  const arr = ocean.mesh.geometry.attributes.position.array, b = ocean.base;
+  for (let i = 0; i < arr.length; i += 3) {
+    const x = b[i], y = b[i + 1], z = b[i + 2];
+    const k = 1 + 0.0022 * Math.sin(t * 1.3 + x * 0.21 + y * 0.13) * Math.cos(t * 0.9 + z * 0.17);
+    arr[i] = x * k; arr[i + 1] = y * k; arr[i + 2] = z * k;
+  }
+  ocean.mesh.geometry.attributes.position.needsUpdate = true;
+  ocean.mesh.geometry.computeVertexNormals();
+}
+
+// ---------------------------------------------------------------- helpers to place things on the surface
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _s = new V();
+function surfaceMatrix(dir, lift, scale, spin = Math.random() * Math.PI * 2) {
+  _q.setFromUnitVectors(Y_AXIS, dir);
+  _q2.setFromAxisAngle(Y_AXIS, spin);
+  _q.multiply(_q2);
+  const p = dir.clone().multiplyScalar(R + elevation(dir) + lift);
+  return _m.compose(p, _q, scale);
+}
+
+// Poalim Center (the new HQ): the flattest low-land site a short flight from the spawn point.
+// Chosen deterministically so it's always in the same place.
+const HQ_DIR = (() => {
+  let best = null, bestScore = Infinity;
+  const N = 4000, ga = Math.PI * (3 - Math.sqrt(5)); // fibonacci sphere
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i + 0.5) / N * 2, r = Math.sqrt(1 - y * y);
+    const d = new V(Math.cos(ga * i) * r, y, Math.sin(ga * i) * r);
+    const a = d.angleTo(Y_AXIS);
+    if (a < 0.5 || a > 1.0) continue;
+    const e0 = elevation(d);
+    if (e0 < 0.8 || e0 > 4) continue;
+    let spread = 0;
+    for (let k = 0; k < 8; k++) {
+      const t = k / 8 * Math.PI * 2;
+      const side = new V().crossVectors(d, Y_AXIS).normalize();
+      const fwdT = new V().crossVectors(side, d);
+      const e = elevation(d.clone().addScaledVector(side, Math.cos(t) * 0.1).addScaledVector(fwdT, Math.sin(t) * 0.1).normalize());
+      if (e < 0.4) spread += 20;
+      spread += Math.abs(e - e0);
+    }
+    if (spread < bestScore) { bestScore = spread; best = d; }
+  }
+  return best || new V(0, 0.6, 0.8).normalize();
+})();
+const nearHQ = d => HQ_DIR.angleTo(d) < 0.14;
+
+// city sites for the Bank Hapoalim skyscrapers: flat, low land away from the spawn point (north pole)
+const CITY_SPREAD = 0.06;
+const cityCenters = [];
+{
+  let tries = 0;
+  while (cityCenters.length < 3 && tries++ < 20000) {
+    const c = randomDir();
+    if (c.y > 0.9 || c.angleTo(HQ_DIR) < 0.6 || cityCenters.some(o => o.angleTo(c) < 0.8)) continue;
+    let ok = true;
+    for (let i = 0; i < 12 && ok; i++) {
+      const e = elevation(c.clone().add(randomDir().multiplyScalar(CITY_SPREAD * 1.3)).normalize());
+      ok = e > 0.6 && e < 4;
+    }
+    if (ok) cityCenters.push(c);
+  }
+}
+const inCity = d => nearHQ(d) || cityCenters.some(c => c.angleTo(d) < CITY_SPREAD * 1.6);
+
+// trees
+{
+  const trunkGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.9, 5).translate(0, 0.45, 0);
+  const leafGeo = new THREE.ConeGeometry(0.65, 1.7, 6).translate(0, 1.55, 0);
+  const N = 900;
+  const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: 0x7a5230, flatShading: true }), N);
+  const leaves = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true }), N);
+  const greens = [0x2e7d32, 0x4a7c3a, 0x1b5e20, 0x6b8e23, 0x5a7d2a].map(h => new THREE.Color(h));
+  let n = 0, tries = 0;
+  while (n < N && tries++ < 30000) {
+    const d = randomDir(), e = elevation(d);
+    if (e < 0.9 || e > 11 || inCity(d)) continue;
+    const s = 0.7 + Math.random() * 0.7;
+    const m = surfaceMatrix(d, -0.25, _s.set(s, s, s));
+    trunks.setMatrixAt(n, m); leaves.setMatrixAt(n, m);
+    leaves.setColorAt(n, greens[(Math.random() * greens.length) | 0]);
+    n++;
+  }
+  trunks.count = leaves.count = n;
+  scene.add(trunks, leaves);
+}
+
+// villages (their central squares become the worker pickup points)
+const villageCenters = [];
+{
+  const bodyGeo = new THREE.BoxGeometry(1, 0.8, 1.2).translate(0, 0.4, 0);
+  const roofGeo = new THREE.ConeGeometry(0.92, 0.6, 4).rotateY(Math.PI / 4).scale(1, 1, 1.25).translate(0, 1.1, 0);
+  const N = 160;
+  const bodies = new THREE.InstancedMesh(bodyGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true }), N);
+  const roofs = new THREE.InstancedMesh(roofGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true }), N);
+  const walls = [0xfff3e0, 0xffe0b2, 0xf5f5f5, 0xffccbc, 0xe1f5fe].map(h => new THREE.Color(h));
+  const roofC = [0xc0392b, 0xa0522d, 0x34495e, 0xd35400].map(h => new THREE.Color(h));
+  let n = 0, tries = 0;
+  while (villageCenters.length < 12 && tries++ < 5000) {
+    const center = randomDir(), ce = elevation(center);
+    if (ce < 0.8 || ce > 4 || inCity(center) || center.angleTo(HQ_DIR) < 0.35 ||
+        villageCenters.some(v => v.angleTo(center) < 0.25)) continue;
+    villageCenters.push(center);
+    for (let h = 0; h < 14 && n < N; h++) {
+      const d = center.clone().add(randomDir().multiplyScalar(0.07)).normalize();
+      const e = elevation(d);
+      if (e < 0.7 || e > 6 || inCity(d) || d.angleTo(center) < 0.025) continue; // keep the square free for the pickup
+      const s = 0.8 + Math.random() * 0.6;
+      const m = surfaceMatrix(d, -0.2, _s.set(s, s * (0.9 + Math.random() * 0.5), s));
+      bodies.setMatrixAt(n, m); roofs.setMatrixAt(n, m);
+      bodies.setColorAt(n, walls[(Math.random() * walls.length) | 0]);
+      roofs.setColorAt(n, roofC[(Math.random() * roofC.length) | 0]);
+      n++;
+    }
+  }
+  bodies.count = roofs.count = n;
+  scene.add(bodies, roofs);
+}
+
+// clouds
+const cloudPivot = new THREE.Object3D();
+scene.add(cloudPivot);
+{
+  const puffGeo = new THREE.IcosahedronGeometry(1, 0);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xd9c4ff, emissive: 0x4a2a6a, flatShading: true, transparent: true, opacity: 0.85, roughness: 1 });
+  for (let i = 0; i < 45; i++) {
+    const d = randomDir();
+    const cloud = new THREE.Group();
+    const puffs = 3 + (Math.random() * 4 | 0);
+    for (let p = 0; p < puffs; p++) {
+      const m = new THREE.Mesh(puffGeo, mat);
+      const s = 1.5 + Math.random() * 2;
+      m.scale.set(s * 1.3, s, s);
+      m.position.set((p - puffs / 2) * 2.2 + Math.random(), Math.random() * 0.8, (Math.random() - 0.5) * 2.5);
+      m.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+      cloud.add(m);
+    }
+    cloud.position.copy(d).multiplyScalar(R + 36 + Math.random() * 16);
+    cloud.quaternion.setFromUnitVectors(Y_AXIS, d);
+    cloudPivot.add(cloud);
+  }
+}
+
+// ---------------------------------------------------------------- the airplane
+function buildPlane() {
+  const g = new THREE.Group();
+  const mat = c => new THREE.MeshStandardMaterial({ color: c, flatShading: true, roughness: 0.6 });
+  const red = mat(0xe74c3c), white = mat(0xf5f6fa), dark = mat(0x2f3640), glass = mat(0x74b9ff), yellow = mat(0xfbc531);
+  const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); g.add(o); return o; };
+  add(new THREE.BoxGeometry(0.62, 0.62, 3.0), red, 0, 0, 0);                       // fuselage
+  add(new THREE.BoxGeometry(0.5, 0.5, 0.4), white, 0, 0, -1.65);                   // nose
+  add(new THREE.BoxGeometry(0.45, 0.35, 0.8), glass, 0, 0.45, -0.45);              // cockpit
+  add(new THREE.BoxGeometry(4.6, 0.1, 0.95), white, 0, 0.05, -0.35);               // wing
+  add(new THREE.BoxGeometry(0.5, 0.11, 0.96), red, 2.05, 0.05, -0.35);             // wing tips
+  add(new THREE.BoxGeometry(0.5, 0.11, 0.96), red, -2.05, 0.05, -0.35);
+  add(new THREE.BoxGeometry(1.7, 0.08, 0.55), white, 0, 0.1, 1.3);                 // h-stab
+  add(new THREE.BoxGeometry(0.08, 0.8, 0.6), red, 0, 0.5, 1.3);                    // fin
+  add(new THREE.BoxGeometry(0.06, 0.5, 0.06), dark, 0.45, -0.5, -0.5);             // gear
+  add(new THREE.BoxGeometry(0.06, 0.5, 0.06), dark, -0.45, -0.5, -0.5);
+  add(new THREE.CylinderGeometry(0.18, 0.18, 0.1, 10).rotateZ(Math.PI / 2), dark, 0.45, -0.75, -0.5);
+  add(new THREE.CylinderGeometry(0.18, 0.18, 0.1, 10).rotateZ(Math.PI / 2), dark, -0.45, -0.75, -0.5);
+  const prop = new THREE.Group();
+  prop.position.set(0, 0, -1.9);
+  prop.add(new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.16, 0.05), dark));
+  prop.add(new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 8).rotateX(-Math.PI / 2), yellow));
+  g.add(prop);
+  g.userData.props = [prop];
+  return g;
+}
+const plane = new THREE.Group(); // holds one model per upgrade level (see "the fleet")
+plane.userData.cessna = buildPlane();
+scene.add(plane);
+
+// ring direction arrow
+const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.7, 10),
+  new THREE.MeshBasicMaterial({ color: 0xe42328, fog: false, depthTest: false, transparent: true, opacity: 0.9 }));
+arrow.renderOrder = 999;
+scene.add(arrow);
+
+// ---------------------------------------------------------------- Bank Hapoalim logo collectibles
+// Official Bank Hapoalim logo (Hebrew, 2018), embedded so it also works when opened from file://.
+// Source: https://commons.wikimedia.org/wiki/File:Bank_hapoalim_logo_heb18.svg
+const LOGO_SVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="132px" height="23.125px" viewBox="-1.273 -0.514 132 23.125" enable-background="new -1.273 -0.514 132 23.125" xml:space="preserve"><g><path fill="none" d="M4.764,9.228H2.581v6.749h5.756v-3.177c0-1.189-0.265-2.116-0.926-2.777C6.881,9.493,6.021,9.228,4.764,9.228z "/><path fill="#E42328" d="M128.959,9.493l-8.205-8.205c-0.992-0.992-2.58-0.992-3.573,0l-8.204,8.205 c-0.993,0.993-0.993,2.581,0,3.574l8.204,8.204c0.993,0.993,2.581,0.993,3.573,0l8.205-8.204 C129.952,12.073,129.952,10.485,128.959,9.493z"/><path fill="#545453" d="M4.83,6.913H0v11.38h10.983v-5.358c0-2.316-0.529-3.706-1.456-4.633C8.536,7.31,7.08,6.913,4.83,6.913z M8.337,15.977H2.581V9.228h2.184c1.257,0,2.117,0.265,2.646,0.794c0.662,0.662,0.926,1.588,0.926,2.777V15.977z"/><path fill="#545453" d="M24.813,6.845h-4.896V4.001h-2.581v5.228h6.286l-2.779,8.999h2.647l2.845-9.329 C26.731,7.64,26.136,6.845,24.813,6.845z"/><path fill="#545453" d="M50.551,6.582c-3.176,0-5.161,1.854-5.161,4.168c0,2.117,1.522,3.705,4.235,3.705c0.397,0,0.596,0,0.662,0 v-2.117c-0.132,0.066-0.198,0.066-0.397,0.066c-1.125,0-1.853-0.794-1.853-1.787c0-1.059,0.86-1.853,2.382-1.853 c1.985,0,3.309,1.257,3.309,3.705c0,2.646-1.522,3.705-3.97,3.705c-0.993,0-2.448-0.198-3.771-0.662l-0.596,2.053 c1.324,0.661,3.242,0.927,4.566,0.927c3.97,0,6.551-1.92,6.551-5.955C56.507,8.699,54.257,6.582,50.551,6.582z"/><path fill="#545453" d="M88.465,14.257c0,1.125-0.596,1.854-1.588,1.854c-0.465,0-0.86-0.133-1.125-0.198l-0.529,2.052 c0.529,0.265,1.189,0.33,1.785,0.33c2.714,0,4.037-1.39,4.037-4.168v-7.28h-2.58V14.257z"/><rect x="12.77" y="6.845" fill="#545453" width="2.647" height="6.154"/><path fill="#545453" d="M35.664,12.272c0,1.258-0.331,2.184-0.86,2.778c-0.331,0.331-0.993,0.662-1.456,0.662L30.9,6.78h-2.845 l2.646,9.131h-2.646v2.315h4.103c2.25,0,3.705-0.396,4.698-1.39c0.926-0.927,1.389-2.383,1.389-4.565V6.78h-2.58L35.664,12.272 L35.664,12.272z"/><rect x="40.692" y="6.845" fill="#545453" width="2.647" height="11.381"/><path fill="#545453" d="M62.329,6.913h-4.168v2.381h4.035c1.258,0,2.25,0.266,2.779,0.794c0.596,0.662,0.794,1.588,0.794,2.779 v5.359h0.065h2.582v-5.359c0-2.183-0.465-3.639-1.392-4.565C66.034,7.31,64.579,6.913,62.329,6.913z"/><path fill="#545453" d="M83.965,6.845h-9.264v2.383h8.006l-2.713,8.999h2.646l2.846-9.329C85.883,7.64,85.29,6.845,83.965,6.845z" /><path fill="#545453" d="M101.565,12.867c0-2.183-0.463-3.639-1.389-4.565c-0.992-0.991-2.449-1.389-4.698-1.389h-2.382v2.381h2.25 c1.322,0,2.184,0.198,2.713,0.729c0.596,0.662,0.859,1.653,0.859,2.845v3.176h-6.021v2.185h0.066h10.322v-2.25h-1.722 L101.565,12.867L101.565,12.867z"/><rect x="58.293" y="12.205" fill="#545453" width="2.646" height="6.021"/><rect x="74.834" y="12.338" fill="#545453" width="2.646" height="8.999"/></g></svg>`;
+const LOGO_RED = 0xe42328;
+
+// 3D emblem: the logo's red diamond path, extruded
+const emblemGeo = (() => {
+  const red = new SVGLoader().parse(LOGO_SVG).paths.find(p => p.color.getHex() === new THREE.Color(LOGO_RED).getHex());
+  const geo = new THREE.ExtrudeGeometry(SVGLoader.createShapes(red), {
+    depth: 1.2, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.4, bevelSegments: 3, curveSegments: 12,
+  });
+  geo.center();
+  geo.computeBoundingBox();
+  const s = 5 / (geo.boundingBox.max.x - geo.boundingBox.min.x);
+  return geo.scale(s, -s, s); // SVG y points down
+})();
+
+// sign underneath: the full official logo drawn on a white board
+const SIGN_W = 7.2, SIGN_H = 1.8;
+const signTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  const img = new Image();
+  img.onload = () => {
+    const h = 150, w = h * (132 / 23.125);
+    g.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
+    tex.needsUpdate = true;
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(LOGO_SVG);
+  return tex;
+})();
+const emblemMat = new THREE.MeshStandardMaterial({ color: LOGO_RED, emissive: LOGO_RED, emissiveIntensity: 0.45, roughness: 0.35, metalness: 0.1 });
+const signMat = new THREE.MeshBasicMaterial({ map: signTex, fog: false });
+const signFrameMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.6 });
+const logoBurstMat = new THREE.MeshBasicMaterial({ color: LOGO_RED });
+const signGeo = new THREE.PlaneGeometry(SIGN_W, SIGN_H);
+const signFrameGeo = new THREE.BoxGeometry(SIGN_W + 0.3, SIGN_H + 0.3, 0.12);
+const LOGO_RADIUS = 4.2;
+
+const logos = [];
+function makeLogo() {
+  const g = new THREE.Group();
+  const spin = new THREE.Group(); // spins around the local vertical
+  spin.add(new THREE.Mesh(emblemGeo, emblemMat));
+  const sign = new THREE.Group();
+  sign.position.y = -4;
+  sign.add(new THREE.Mesh(signFrameGeo, signFrameMat));
+  const front = new THREE.Mesh(signGeo, signMat);
+  front.position.z = 0.07;
+  const back = new THREE.Mesh(signGeo, signMat);
+  back.rotation.y = Math.PI;
+  back.position.z = -0.07;
+  sign.add(front, back);
+  spin.add(sign);
+  g.add(spin);
+  g.userData.spin = spin;
+  return g;
+}
+function placeLogo(logo) {
+  let d;
+  do d = randomDir(); while (inCity(d));
+  logo.position.copy(d).multiplyScalar(groundRadius(d) + 10 + Math.random() * 18);
+  logo.quaternion.setFromUnitVectors(Y_AXIS, d); // stand upright on the planet
+  logo.userData.spin.rotation.y = Math.random() * Math.PI * 2;
+}
+for (let i = 0; i < 10; i++) {
+  const l = makeLogo();
+  placeLogo(l);
+  scene.add(l);
+  logos.push(l);
+}
+
+// ---------------------------------------------------------------- Bank Hapoalim skyscrapers
+function windowTexture(bg, lit, dim, litChance) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, 64, 64);
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+    g.fillStyle = Math.random() < litChance ? lit : dim;
+    g.fillRect(x * 16 + 3, y * 16 + 3, 10, 11);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.magFilter = THREE.NearestFilter;
+  return t;
+}
+const windowTex = windowTexture('#1c1030', '#ffd98a', '#4b3b7a', 0.6);
+const towerSideMat = new THREE.MeshStandardMaterial({ map: windowTex, roughness: 0.3, metalness: 0.4, emissive: 0xffffff, emissiveIntensity: 0.7, emissiveMap: windowTex });
+const towerRoofMat = new THREE.MeshStandardMaterial({ color: 0x5d6d7e, roughness: 0.8 });
+const towerMats = [towerSideMat, towerSideMat, towerRoofMat, towerRoofMat, towerSideMat, towerSideMat];
+
+// box whose side UVs repeat so each window tile is tileW × tileH units
+function boxWithWindows(w, h, d, tileW = 1.2, tileH = 1.5) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) {
+    const face = Math.floor(i / 4); // +x, -x, +y, -y, +z, -z
+    if (face === 2 || face === 3) continue;
+    uv.setXY(i, uv.getX(i) * (face < 2 ? d : w) / tileW, uv.getY(i) * h / tileH);
+  }
+  return geo;
+}
+
+// ---------------------------------------------------------------- Vegas neon, searchlights & landmarks
+const NEON = [0xff2bd6, 0x00f0ff, 0xffd23f, 0x39ff14, 0xb026ff].map((c, i) => {
+  const m = new THREE.MeshBasicMaterial({ color: c, fog: false });
+  m.userData = { hsl: m.color.getHSL({}), phase: i * 1.3 };
+  return m;
+});
+const randomNeon = () => NEON[(Math.random() * NEON.length) | 0];
+// glowing tubes on the vertical edges and around the roof of a w × d block centred on cx
+function addNeonOutline(group, w, d, h, y0, mat, cx = 0) {
+  const t = 0.16, hw = w / 2 + 0.04, hd = d / 2 + 0.04, top = y0 + h - 0.08;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) addBox(group, mat, t, h, t, cx + sx * hw, y0 + h / 2, sz * hd);
+  for (const s of [-1, 1]) {
+    addBox(group, mat, w + 0.24, t, t, cx, top, s * hd);
+    addBox(group, mat, t, t, d + 0.24, cx + s * hw, top, 0);
+  }
+}
+
+const searchMat = new THREE.MeshBasicMaterial({ color: 0xcfe8ff, transparent: true, opacity: 0.09, blending: THREE.AdditiveBlending,
+  depthWrite: false, side: THREE.DoubleSide, fog: false });
+const searchGeo = new THREE.CylinderGeometry(3.4, 0.35, 110, 16, 1, true).translate(0, 55, 0);
+const searchlights = [];
+function addSearchlight(pos, upDir) {
+  const g = new THREE.Group();
+  g.position.copy(pos);
+  g.quaternion.setFromUnitVectors(Y_AXIS, upDir);
+  const pivot = new THREE.Object3D();
+  pivot.add(new THREE.Mesh(searchGeo, searchMat));
+  g.add(pivot);
+  scene.add(g);
+  searchlights.push({ pivot, phase: Math.random() * 10, speed: 0.35 + Math.random() * 0.3 });
+}
+const beamMat = new THREE.MeshBasicMaterial({ color: 0xe8f4ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+
+const towers = [];       // collision boxes
+const roofEmblems = [];  // spinning diamonds on the roofs
+// solid box (in the group's local frame) centred on x,z, spanning y0..y1
+function addCollider(group, x, z, hx, hz, y0, y1) {
+  group.updateMatrixWorld(true);
+  const m = group.matrixWorld.clone().multiply(new THREE.Matrix4().makeTranslation(x, 0, z));
+  const reach = (y1 - y0) / 2 + Math.max(hx, hz) * 1.5 + 6;
+  towers.push({ pos: new V(0, (y0 + y1) / 2, 0).applyMatrix4(m), inv: m.invert(), hx, hz, y0, y1, r2: reach * reach });
+}
+// a 4:1 sign on all four sides of a w × d block centred on cx,cz, with its middle at height y
+function addSigns(group, mat, w, d, y, cx = 0, cz = 0) {
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 2, span = (k % 2 ? d : w) * 0.92, off = (k % 2 ? w : d) / 2 + 0.03;
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(span, span / 4), mat);
+    s.rotation.y = a;
+    s.position.set(cx + Math.sin(a) * off, y, cz + Math.cos(a) * off);
+    group.add(s);
+  }
+}
+function addRoofEmblem(group, scale, roofY, x = 0) {
+  const em = new THREE.Mesh(emblemGeo, emblemMat);
+  em.scale.setScalar(scale);
+  em.position.set(x, roofY + 2.5 * scale + 0.3, 0);
+  em.rotation.y = Math.random() * Math.PI;
+  group.add(em);
+  roofEmblems.push(em);
+}
+function buildTower(dir, w, h) {
+  const g = new THREE.Group();
+  g.position.copy(dir).multiplyScalar(R + elevation(dir) - 1); // sink the base a bit to cover slopes
+  g.quaternion.setFromUnitVectors(Y_AXIS, dir).multiply(_q2.setFromAxisAngle(Y_AXIS, Math.random() * Math.PI));
+  h += 1;
+  const body = new THREE.Mesh(boxWithWindows(w, h, w), towerMats);
+  body.position.y = h / 2;
+  g.add(body);
+  addSigns(g, signMat, w, w, h - w * 0.92 / 8 - 0.25);
+  addRoofEmblem(g, Math.min(0.45, w * 0.18), h);
+  addNeonOutline(g, w, w, h, 0, randomNeon());
+  scene.add(g);
+  addCollider(g, 0, 0, w / 2, w / 2, -2, h);
+}
+function landmarkGroup(dir) {
+  const g = new THREE.Group();
+  g.position.copy(dir).multiplyScalar(R + elevation(dir) - 1);
+  g.quaternion.setFromUnitVectors(Y_AXIS, dir);
+  scene.add(g);
+  return g;
+}
+// black glass pyramid with a light beam shooting into space from the apex
+function buildPyramid(dir) {
+  const g = landmarkGroup(dir);
+  const H = 15, B = 7.5, hs = B / Math.SQRT2;
+  const pyr = new THREE.Mesh(new THREE.ConeGeometry(B, H, 4, 1).rotateY(Math.PI / 4).translate(0, H / 2, 0),
+    new THREE.MeshStandardMaterial({ color: 0x15122a, metalness: 0.8, roughness: 0.25, flatShading: true }));
+  g.add(pyr);
+  g.add(new THREE.LineSegments(new THREE.EdgesGeometry(pyr.geometry), new THREE.LineBasicMaterial({ color: 0xffd23f, fog: false })));
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.9, 260, 10, 1, true).translate(0, H + 130, 0), beamMat);
+  g.add(beam);
+  for (let k = 0; k < 3; k++) addCollider(g, 0, 0, hs * (1 - k / 3), hs * (1 - k / 3), k ? k * H / 3 : -2, (k + 1) * H / 3);
+}
+// tall observation tower with a neon-ringed pod on top
+function buildObservationTower(dir) {
+  const g = landmarkGroup(dir);
+  const white = new THREE.MeshStandardMaterial({ color: 0xece6f5, roughness: 0.6, flatShading: true });
+  const podMat = new THREE.MeshStandardMaterial({ map: windowTex, emissive: 0xffffff, emissiveMap: windowTex, emissiveIntensity: 0.8, metalness: 0.4, roughness: 0.3 });
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.4, 40, 10), white);
+  col.position.y = 20;
+  const pod = new THREE.Mesh(new THREE.CylinderGeometry(2.9, 2.2, 3.4, 16), podMat);
+  pod.position.y = 40;
+  const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.35, 9, 8), white);
+  spire.position.y = 46.2;
+  g.add(col, pod, spire);
+  for (const [y, m] of [[41.8, NEON[0]], [38.3, NEON[1]]]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(y > 40 ? 2.95 : 2.25, 0.14, 6, 32).rotateX(Math.PI / 2), m);
+    ring.position.y = y;
+    g.add(ring);
+  }
+  addCollider(g, 0, 0, 1.4, 1.4, -2, 38.3);
+  addCollider(g, 0, 0, 2.9, 2.9, 38.3, 41.7);
+  addCollider(g, 0, 0, 0.4, 0.4, 41.7, 50.7);
+}
+cityCenters.forEach((center, ci) => {
+  const placed = [];
+  // one landmark in the middle, then a cluster of neon-lit towers around it
+  const w = [10, 5.8, 3.4][ci] ?? 3.4;
+  if (ci === 0) buildPyramid(center);
+  else if (ci === 1) buildObservationTower(center);
+  else buildTower(center, 3.4, 26 + Math.random() * 6);
+  placed.push({ d: center, w });
+  for (let k = 0; k < 3; k++) {
+    const d = center.clone().add(randomDir().multiplyScalar(CITY_SPREAD * 0.9)).normalize();
+    addSearchlight(d.clone().multiplyScalar(R + elevation(d)), d);
+  }
+  let tries = 0;
+  while (placed.length < 14 && tries++ < 400) {
+    const d = center.clone().add(randomDir().multiplyScalar(CITY_SPREAD)).normalize();
+    const e = elevation(d);
+    if (e < 0.5 || e > 5) continue;
+    const w = 2 + Math.random() * 1.6;
+    if (placed.some(p => p.d.angleTo(d) * R < (p.w + w) * 0.75 + 1)) continue;
+    const distFromCenter = center.angleTo(d) / CITY_SPREAD; // taller in the middle
+    buildTower(d, w, 8 + (1 - distFromCenter) * 12 + Math.random() * 6);
+    placed.push({ d, w });
+  }
+});
+
+// ---------------------------------------------------------------- "טסים לפועלים סנטר" – theme assets
+function canvasTexture(w, h, draw) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+function diamond(g, cx, cy, size, color) {
+  g.save();
+  g.translate(cx, cy);
+  g.rotate(Math.PI / 4);
+  g.fillStyle = color;
+  g.beginPath();
+  g.roundRect(-size / 2, -size / 2, size, size, size * 0.14);
+  g.fill();
+  g.restore();
+}
+const HEB_FONT = 'Arial, "Arial Hebrew", sans-serif';
+// "פועלים סנטר" in the bank's style: grey Hebrew wordmark with the red diamond on the right
+const hqSignTex = canvasTexture(1024, 256, (g, w, h) => {
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, w, h);
+  diamond(g, 900, 118, 118, '#e42328');
+  g.fillStyle = '#545453';
+  g.direction = 'rtl';
+  g.textAlign = 'right';
+  g.textBaseline = 'middle';
+  g.font = `bold 112px ${HEB_FONT}`;
+  g.fillText('פועלים סנטר', 790, 112);
+  g.direction = 'ltr';
+  g.textAlign = 'center';
+  g.fillStyle = '#e42328';
+  g.font = `bold 40px ${HEB_FONT}`;
+  g.fillText('P O A L I M   C E N T E R', w / 2, 218);
+});
+// "Welcome to Fabulous Poalim Center" – Vegas-style marquee sign
+const welcomeTex = canvasTexture(1024, 640, (g, w, h) => {
+  const pts = [[w / 2, 8], [w - 28, 150], [w - 118, h - 8], [118, h - 8], [28, 150]];
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.closePath();
+  g.fillStyle = '#fff8e7';
+  g.fill();
+  g.lineWidth = 14; g.strokeStyle = '#e42328'; g.stroke();
+  // light bulbs around the edge
+  g.shadowColor = '#ffb000'; g.shadowBlur = 14; g.fillStyle = '#ffd23f';
+  for (let i = 0; i < pts.length; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % pts.length];
+    const n = Math.floor(Math.hypot(bx - ax, by - ay) / 36);
+    for (let k = 0; k < n; k++) {
+      const t = k / n, x = ax + (bx - ax) * t, y = ay + (by - ay) * t;
+      const cx = x + (w / 2 - x) * 0.045, cy = y + (h * 0.55 - y) * 0.06;
+      g.beginPath(); g.arc(cx, cy, 8, 0, Math.PI * 2); g.fill();
+    }
+  }
+  g.shadowBlur = 0;
+  // star on top
+  g.fillStyle = '#e42328';
+  g.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 16 : 40;
+    g.lineTo(w / 2 + Math.cos(a) * r, 92 + Math.sin(a) * r);
+  }
+  g.fill();
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `italic bold 64px Georgia, serif`;
+  g.fillText('Welcome to', w / 2, 188);
+  // FABULOUS in circles
+  const word = 'FABULOUS', step = 82, x0 = w / 2 - step * (word.length - 1) / 2;
+  for (let i = 0; i < word.length; i++) {
+    g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x0 + i * step, 278, 36, 0, Math.PI * 2); g.fill();
+    g.lineWidth = 6; g.strokeStyle = '#1f4fb8'; g.stroke();
+    g.fillStyle = '#1f4fb8'; g.font = `bold 44px ${HEB_FONT}`; g.fillText(word[i], x0 + i * step, 281);
+  }
+  g.fillStyle = '#e42328';
+  g.font = `bold 92px ${HEB_FONT}`;
+  g.fillText('POALIM CENTER', w / 2, 398);
+  g.direction = 'rtl';
+  g.fillStyle = '#1f4fb8';
+  g.font = `bold 58px ${HEB_FONT}`;
+  g.fillText('!ברוכים הבאים', w / 2, 492);
+  g.direction = 'ltr';
+  g.fillStyle = '#545453';
+  g.font = `bold 30px ${HEB_FONT}`;
+  g.fillText('★  BANK HAPOALIM  ★', w / 2, 568);
+});
+const waitingTex = canvasTexture(512, 128, (g, w, h) => {
+  g.fillStyle = '#27ae60';
+  g.beginPath(); g.roundRect(4, 4, w - 8, h - 8, 56); g.fill();
+  g.fillStyle = '#ffffff';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.direction = 'rtl';
+  g.font = `bold 60px ${HEB_FONT}`;
+  g.fillText('עובדים מחכים', w / 2, h / 2 + 4);
+});
+const hqSignMat = new THREE.MeshBasicMaterial({ map: hqSignTex, fog: false });
+
+// little office workers (shared by the pickup points and the HQ plaza)
+const personBodyGeo = new THREE.CylinderGeometry(0.2, 0.26, 0.8, 7).translate(0, 0.4, 0);
+const personHeadGeo = new THREE.SphereGeometry(0.19, 10, 8).translate(0, 1.0, 0);
+const shirtColors = [0xffffff, 0xd6eaf8, 0xe42328, 0x2c3e50, 0xfad7a0].map(h => new THREE.Color(h));
+const skinColors = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac].map(h => new THREE.Color(h));
+const personBodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true });
+const personHeadMat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true });
+function peopleMesh(n) {
+  const bodies = new THREE.InstancedMesh(personBodyGeo, personBodyMat, n);
+  const heads = new THREE.InstancedMesh(personHeadGeo, personHeadMat, n);
+  for (let i = 0; i < n; i++) {
+    bodies.setColorAt(i, shirtColors[i % shirtColors.length]);
+    heads.setColorAt(i, skinColors[(i * 7) % skinColors.length]);
+  }
+  const g = new THREE.Group();
+  g.add(bodies, heads);
+  g.userData = { bodies, heads };
+  return g;
+}
+function setPerson(people, i, x, y, z) {
+  _m.makeRotationY(Math.random() * Math.PI * 2).setPosition(x, y, z);
+  people.userData.bodies.setMatrixAt(i, _m);
+  people.userData.heads.setMatrixAt(i, _m);
+}
+function setPeopleCount(people, n) {
+  people.userData.bodies.count = people.userData.heads.count = n;
+}
+
+// ---------------------------------------------------------------- Poalim Center – the new HQ
+const hqGlassTex = windowTexture('#0f3550', '#f0fbff', '#3fa0c8', 0.55);
+const hqGlassMat = new THREE.MeshStandardMaterial({ map: hqGlassTex, roughness: 0.2, metalness: 0.5, emissive: 0xffffff, emissiveIntensity: 0.6, emissiveMap: hqGlassTex });
+const hqTowerMats = [hqGlassMat, hqGlassMat, towerRoofMat, towerRoofMat, hqGlassMat, hqGlassMat];
+const hqStoneMat = new THREE.MeshStandardMaterial({ color: 0xeae6df, roughness: 0.9, flatShading: true });
+const hqAccentMat = new THREE.MeshStandardMaterial({ color: 0xe42328, emissive: 0xe42328, emissiveIntensity: 0.35 });
+const GATE_Y = 18, GATE_Z = 22;
+const bulbOn = new THREE.MeshBasicMaterial({ color: 0xfff3a0, fog: false }), bulbOff = new THREE.MeshBasicMaterial({ color: 0x6a4a10, fog: false });
+const HQ = (() => {
+  const g = new THREE.Group();
+  g.position.copy(HQ_DIR).multiplyScalar(R + elevation(HQ_DIR) - 1.5);
+  // face the spawn point (north pole) so the entrance greets arriving pilots
+  const y = HQ_DIR.clone(), z = Y_AXIS.clone().addScaledVector(y, -y.dot(Y_AXIS)).normalize(), x = new V().crossVectors(y, z);
+  g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
+
+  // podium with the big sign on front and back
+  const podium = new THREE.Mesh(new THREE.BoxGeometry(18, 5.5, 11), hqStoneMat);
+  podium.position.y = 2.75;
+  g.add(podium);
+  for (const side of [1, -1]) {
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(13, 3.25), hqSignMat);
+    s.position.set(0, 3, side * 5.53);
+    if (side < 0) s.rotation.y = Math.PI;
+    g.add(s);
+  }
+  addCollider(g, 0, 0, 9, 5.5, -2, 5.5);
+
+  // two glass towers joined by a sky bridge, with red accent fins
+  const towerDefs = [{ x: -5, h: 34, mat: hqSignMat }, { x: 5, h: 25, mat: signMat }];
+  for (const t of towerDefs) {
+    const body = new THREE.Mesh(boxWithWindows(6, t.h, 6, 1.2, 1.2), hqTowerMats);
+    body.position.set(t.x, 5.5 + t.h / 2, 0);
+    g.add(body);
+    for (const fx of [-3.05, 3.05]) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.3, t.h, 0.3), hqAccentMat);
+      fin.position.set(t.x + fx, 5.5 + t.h / 2, 3.05);
+      g.add(fin);
+    }
+    addSigns(g, t.mat, 6, 6, 5.5 + t.h - 1.2, t.x);
+    addNeonOutline(g, 6, 6, t.h, 5.5, NEON[t.x < 0 ? 0 : 1], t.x);
+    addCollider(g, t.x, 0, 3, 3, 5, 5.5 + t.h);
+  }
+  const bridge = new THREE.Mesh(boxWithWindows(4.2, 3, 4, 1.2, 1.2), hqTowerMats);
+  bridge.position.set(0, 21, 0);
+  g.add(bridge);
+  addCollider(g, 0, 0, 2.1, 2, 19.5, 22.5);
+  addRoofEmblem(g, 1, 5.5 + 34, -5);
+
+  // arrival gate: a giant red diamond in front of the entrance, with a welcome banner and a sky beacon
+  const gate = new THREE.Group();
+  gate.position.set(0, GATE_Y, GATE_Z);
+  gate.rotation.y = Math.PI / 2; // you fly past the entrance, along the facade
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(7, 0.6, 8, 4), hqAccentMat);
+  gate.add(ring);
+  const banner = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.625), new THREE.MeshBasicMaterial({ map: welcomeTex, fog: false, side: THREE.DoubleSide, transparent: true }));
+  banner.position.y = 10.6;
+  gate.add(banner);
+  // chasing marquee bulbs on both faces of the diamond gate
+  const bulbs = [], bulbGeo = new THREE.SphereGeometry(0.24, 8, 6), corners = [[7, 0], [0, 7], [-7, 0], [0, -7]];
+  for (let e = 0; e < 4; e++) {
+    const [ax, ay] = corners[e], [bx, by] = corners[(e + 1) % 4];
+    for (let k = 0; k < 10; k++) for (const bz of [0.66, -0.66]) {
+      const b = new THREE.Mesh(bulbGeo, bulbOn);
+      b.position.set(ax + (bx - ax) * k / 10, ay + (by - ay) * k / 10, bz);
+      gate.add(b);
+      bulbs.push({ mesh: b, i: e * 10 + k });
+    }
+  }
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 90, 12, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.35, fog: false, depthWrite: false }));
+  beam.position.y = 10 + 45;
+  gate.add(beam);
+  g.add(gate);
+
+  // delivered workers gather on the podium roof
+  const spots = [];
+  for (const z of [3.9, 4.8, -3.9, -4.8]) for (let x = -8.4; x <= 8.4; x += 0.9) spots.push([x, z]);
+  for (const x of [-1.1, 0, 1.1]) for (let z = -2.7; z <= 2.7; z += 0.9) spots.push([x, z]);
+  const plaza = peopleMesh(spots.length);
+  spots.forEach(([sx, sz], i) => setPerson(plaza, i, sx, 5.5, sz));
+  setPeopleCount(plaza, 0);
+  g.add(plaza);
+
+  scene.add(g);
+  g.updateMatrixWorld(true);
+  addSearchlight(new V(-14, 0, -9).applyMatrix4(g.matrixWorld), HQ_DIR);
+  addSearchlight(new V(14, 0, -9).applyMatrix4(g.matrixWorld), HQ_DIR);
+  return { group: g, gate, ring, beam, plaza, bulbs, capacity: spots.length, gatePos: gate.getWorldPosition(new V()),
+    inv: g.matrixWorld.clone().invert(), topR: new V(0, 46, 0).applyMatrix4(g.matrixWorld).length() };
+})();
+
+// ---------------------------------------------------------------- worker pickup points (village squares)
+const MAX_WAITING = 6, REFILL_TIME = 20;
+const stationBeamMat = new THREE.MeshBasicMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.35, fog: false, depthWrite: false });
+const stationLabelMat = new THREE.SpriteMaterial({ map: waitingTex, fog: false });
+const stations = villageCenters.map(dir => {
+  const g = new THREE.Group();
+  g.position.copy(dir).multiplyScalar(R + elevation(dir) - 0.1);
+  g.quaternion.setFromUnitVectors(Y_AXIS, dir);
+  const people = peopleMesh(MAX_WAITING);
+  for (let i = 0; i < MAX_WAITING; i++) {
+    const a = i / MAX_WAITING * Math.PI * 2;
+    setPerson(people, i, Math.cos(a) * 0.8, 0, Math.sin(a) * 0.8);
+  }
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 40, 10, 1, true), stationBeamMat);
+  beam.position.y = 20;
+  const label = new THREE.Sprite(stationLabelMat);
+  label.scale.set(5, 1.25, 1);
+  label.position.y = 4;
+  g.add(people, beam, label);
+  scene.add(g);
+  const s = { dir, group: g, people, beam, label, waiting: 0, timer: 0 };
+  setWaiting(s, 2 + (Math.random() * (MAX_WAITING - 1) | 0));
+  return s;
+});
+function setWaiting(s, n) {
+  s.waiting = n;
+  setPeopleCount(s.people, n);
+  s.beam.visible = s.label.visible = n > 0;
+  if (n === 0) s.timer = REFILL_TIME;
+}
+
+// ---------------------------------------------------------------- the fleet: every 2 logos upgrade the plane
+const LOGOS_PER_UPGRADE = 2;
+const PLANE_LEVELS = [
+  { name: 'Cessna', seats: 6, scale: 1, size: 1, cockpit: [-0.2, 0.75] },
+  { name: 'Commuter', seats: 10, scale: 1.1, size: 1.37, cockpit: [2.4, 0.55] },
+  { name: 'Regional Jet', seats: 16, scale: 1.2, size: 2.0, cockpit: [3.9, 0.6] },
+  { name: 'Poalim Jumbo', seats: 24, scale: 1.3, size: 2.7, cockpit: [5.1, 1.5] },
+];
+const MAX_LEVEL = PLANE_LEVELS.length - 1;
+const fleetMat = c => new THREE.MeshStandardMaterial({ color: c, flatShading: true, roughness: 0.55 });
+const FM = { red: fleetMat(0xe42328), white: fleetMat(0xf5f6fa), dark: fleetMat(0x2f3640), grey: fleetMat(0xb2bec3), window: fleetMat(0x1e272e) };
+function addBox(g, m, w, h, d, x, y, z) {
+  const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  o.position.set(x, y, z);
+  g.add(o);
+  return o;
+}
+function addPassengerWindows(g, halfW, y, z0, z1) {
+  for (let z = z0; z <= z1; z += 0.36) for (const s of [-1, 1]) addBox(g, FM.window, 0.02, 0.14, 0.18, s * (halfW + 0.01), y, z);
+}
+// red diamond through a fin of the given thickness (visible on both sides)
+function addTailEmblem(fin, width, finThick) {
+  const em = new THREE.Mesh(emblemGeo, emblemMat);
+  em.scale.set(width / 5, width / 5, (finThick + 0.05) / 0.52);
+  em.rotation.y = Math.PI / 2;
+  fin.add(em);
+}
+// the Bank Hapoalim logo painted along both sides of the fuselage
+function addLivery(g, halfW, y, z, len) {
+  for (const s of [-1, 1]) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(len, len / 4), signMat);
+    p.position.set(s * (halfW + 0.02), y, z);
+    p.rotation.y = s * Math.PI / 2;
+    g.add(p);
+  }
+}
+function buildCommuter() {
+  const g = new THREE.Group(), props = [];
+  addBox(g, FM.white, 0.75, 0.8, 4.2, 0, 0, 0);
+  addBox(g, FM.red, 0.77, 0.14, 4.22, 0, -0.14, 0);
+  addBox(g, FM.red, 0.6, 0.6, 0.5, 0, -0.04, -2.3);
+  addBox(g, FM.window, 0.62, 0.22, 0.3, 0, 0.2, -2.05);
+  addPassengerWindows(g, 0.375, 0.13, -1.5, 1.3);
+  addBox(g, FM.white, 6, 0.1, 0.95, 0, 0.45, -0.4);
+  addBox(g, FM.red, 0.5, 0.11, 0.96, 2.8, 0.45, -0.4);
+  addBox(g, FM.red, 0.5, 0.11, 0.96, -2.8, 0.45, -0.4);
+  for (const x of [-1.5, 1.5]) {
+    addBox(g, FM.grey, 0.38, 0.38, 1.0, x, 0.3, -0.75);
+    const prop = new THREE.Group();
+    prop.position.set(x, 0.3, -1.3);
+    prop.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.12, 0.04), FM.dark));
+    prop.add(new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 8).rotateX(-Math.PI / 2), FM.red));
+    g.add(prop);
+    props.push(prop);
+  }
+  addBox(g, FM.white, 2.2, 0.08, 0.6, 0, 0.15, 2.0);
+  const fin = addBox(g, FM.white, 0.08, 1.1, 0.8, 0, 0.9, 1.9);
+  addTailEmblem(fin, 0.55, 0.08);
+  addBox(g, FM.dark, 0.08, 0.45, 0.08, 0, -0.55, -1.8);
+  g.userData.props = props;
+  return g;
+}
+function buildJet(big) {
+  const g = new THREE.Group();
+  const L = big ? 7 : 5.4, W = big ? 1.05 : 0.82, H = big ? 1.1 : 0.88;
+  addBox(g, FM.white, W, H, L, 0, 0, 0);
+  addBox(g, FM.red, W + 0.02, 0.16, L + 0.02, 0, -H * 0.3, 0);         // cheatline
+  addBox(g, FM.white, W * 0.8, H * 0.8, 0.6, 0, -0.05, -L / 2 - 0.3);   // nose
+  addBox(g, FM.red, W * 0.5, H * 0.5, 0.35, 0, -0.1, -L / 2 - 0.75);    // radome
+  addBox(g, FM.window, W * 0.82, 0.2, 0.25, 0, H * 0.22, -L / 2 - 0.35);
+  if (big) addBox(g, FM.white, W * 0.85, 0.45, 2.4, 0, H / 2 + 0.2, -L / 2 + 1.6); // upper deck
+  addPassengerWindows(g, W / 2, -H * 0.08, -L / 2 + 0.7, L / 2 - 1.0);
+  addLivery(g, W / 2, H * 0.24, -L * 0.08, big ? 2.2 : 1.6);
+
+  // swept wings with engines slung underneath
+  const span = big ? 4.2 : 2.9, chord = big ? 1.5 : 1.1, sweep = 0.45, wy = -H * 0.25, z0 = -0.2;
+  const er = big ? 0.32 : 0.26, el = big ? 1.2 : 1.0;
+  for (const s of [-1, 1]) {
+    const wing = addBox(g, FM.white, span, 0.12, chord, s * (W / 2 + span / 2 * Math.cos(sweep)), wy, z0 + span / 2 * Math.sin(sweep));
+    wing.rotation.y = -s * sweep;
+    for (const t of big ? [1.0, 2.5] : [1.1]) {
+      const x = s * (W / 2 + t * Math.cos(sweep)), z = z0 + t * Math.sin(sweep) - 0.35;
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(er, er, el, 12).rotateX(Math.PI / 2), FM.grey);
+      eng.position.set(x, wy - er - 0.05, z);
+      const fan = new THREE.Mesh(new THREE.CylinderGeometry(er * 0.8, er * 0.8, 0.05, 12).rotateX(Math.PI / 2), FM.dark);
+      fan.position.set(x, wy - er - 0.05, z - el / 2 - 0.01);
+      const lip = new THREE.Mesh(new THREE.TorusGeometry(er, 0.05, 6, 12), FM.red);
+      lip.position.copy(fan.position);
+      g.add(eng, fan, lip);
+    }
+    const stab = addBox(g, FM.white, big ? 1.8 : 1.2, 0.08, 0.7, s * (W / 2 + (big ? 0.8 : 0.55)), 0.15, L / 2 - 0.2);
+    stab.rotation.y = -s * sweep;
+  }
+  const finH = big ? 1.9 : 1.35, finC = big ? 1.5 : 1.1;
+  const fin = addBox(g, FM.white, 0.1, finH, finC, 0, H / 2 + finH / 2 - 0.1, L / 2 - 0.45);
+  fin.rotation.x = 0.35;
+  addTailEmblem(fin, finC * 0.75, 0.1);
+  g.userData.props = [];
+  return g;
+}
+const planeModels = [plane.userData.cessna, buildCommuter(), buildJet(false), buildJet(true)];
+planeModels.forEach((m, i) => { m.scale.setScalar(PLANE_LEVELS[i].scale); m.visible = i === 0; plane.add(m); });
+
+let planeLevel = 0, logoProgress = 0, upgradeAnim = 1;
+const capacity = () => PLANE_LEVELS[planeLevel].seats;
+const planeSize = () => PLANE_LEVELS[planeLevel].size;
+function setPlaneLevel(l) {
+  planeLevel = l;
+  planeModels.forEach((m, i) => { m.visible = i === l; });
+}
+// ---------------------------------------------------------------- fuel: the engine burns it, fuel cans refill it
+const FUEL_MAX = 100, FUEL_PER_CAN = 40, LOW_FUEL = 25;
+const fuelSignTex = canvasTexture(512, 128, (g, w, h) => {
+  g.fillStyle = '#12051f';
+  g.beginPath(); g.roundRect(4, 4, w - 8, h - 8, 30); g.fill();
+  g.lineWidth = 6; g.strokeStyle = '#39ff14'; g.shadowColor = '#39ff14'; g.shadowBlur = 18; g.stroke();
+  // pump icon
+  g.fillStyle = '#39ff14';
+  g.beginPath(); g.roundRect(40, 26, 58, 78, 8); g.fill();
+  g.fillStyle = '#12051f'; g.fillRect(50, 36, 38, 22);
+  g.strokeStyle = '#39ff14'; g.lineWidth = 7;
+  g.beginPath(); g.moveTo(98, 44); g.lineTo(118, 44); g.lineTo(118, 88); g.quadraticCurveTo(118, 100, 108, 96); g.stroke();
+  g.fillStyle = '#ffffff';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `bold 66px ${HEB_FONT}`;
+  g.fillText('FUEL', 262, 68);
+  g.direction = 'rtl';
+  g.font = `bold 50px ${HEB_FONT}`;
+  g.fillText('דלק', 432, 68);
+});
+const fuelCanMat = new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff1a1a, emissiveIntensity: 0.45, metalness: 0.35, roughness: 0.35, flatShading: true });
+const fuelTrimMat = new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0xffb000, emissiveIntensity: 0.5, metalness: 0.4, roughness: 0.3 });
+const fuelSignMat = new THREE.MeshBasicMaterial({ map: fuelSignTex, fog: false, side: THREE.DoubleSide });
+const fuelHaloMat = new THREE.MeshBasicMaterial({ color: 0x39ff14, fog: false, transparent: true, opacity: 0.85 });
+const fuelBurstMat = new THREE.MeshBasicMaterial({ color: 0x39ff14 });
+const FUEL_RADIUS = 4;
+const fuelCans = [];
+function makeFuelCan() {
+  const g = new THREE.Group(), spin = new THREE.Group();
+  addBox(spin, fuelCanMat, 2.2, 2.8, 1.1, 0, 0, 0);                                   // jerrycan body
+  for (const z of [0.56, -0.56]) for (const a of [0.62, -0.62]) {                     // embossed X
+    const x = addBox(spin, fuelTrimMat, 0.16, 3.0, 0.06, 0, 0, z);
+    x.rotation.z = a;
+  }
+  addBox(spin, fuelTrimMat, 1.3, 0.22, 0.3, -0.25, 1.75, 0);                          // handle
+  for (const x of [-0.8, 0.3]) addBox(spin, fuelTrimMat, 0.2, 0.4, 0.3, x, 1.5, 0);
+  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 0.9, 10), fuelTrimMat);
+  spout.position.set(0.85, 1.7, 0);
+  spout.rotation.z = -0.5;
+  spin.add(spout);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.12, 6, 36), fuelHaloMat);
+  spin.add(halo);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 1.1), fuelSignMat);
+  sign.position.y = -2.8;
+  g.add(spin, sign);
+  g.userData = { spin, sign };
+  return g;
+}
+function placeFuelCan(f) {
+  let d;
+  do d = randomDir(); while (inCity(d));
+  f.position.copy(d).multiplyScalar(groundRadius(d) + 8 + Math.random() * 16);
+  f.quaternion.setFromUnitVectors(Y_AXIS, d);
+}
+for (let i = 0; i < 16; i++) {
+  const f = makeFuelCan();
+  placeFuelCan(f);
+  scene.add(f);
+  fuelCans.push(f);
+}
+
+// pop-in animation after an upgrade (0 → 1)
+const upgradeScale = t => t >= 1 ? 1 : 0.55 + 0.45 * t + Math.sin(t * Math.PI * 3) * (1 - t) * 0.25;
+
+// ---------------------------------------------------------------- particles (smoke & explosion)
+const smokeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
+const fireMat = new THREE.MeshBasicMaterial({ color: 0xff7f27 });
+const debrisMat = new THREE.MeshStandardMaterial({ color: 0x444444, flatShading: true });
+const coinMat = new THREE.MeshBasicMaterial({ color: 0xffd23f });
+const confettiMats = [0xff2bd6, 0xffffff, 0xffd23f, 0x39ff14, 0x00f0ff].map(c => new THREE.MeshBasicMaterial({ color: c }));
+const puffGeo = new THREE.IcosahedronGeometry(0.25, 0);
+const particles = [];
+function spawnParticle(pos, vel, mat, life, size, grow) {
+  let p = particles.find(p => !p.alive);
+  if (!p) {
+    if (particles.length > 250) return;
+    p = { mesh: new THREE.Mesh(puffGeo, mat), vel: new V() };
+    scene.add(p.mesh);
+    particles.push(p);
+  }
+  p.alive = true; p.mesh.visible = true; p.mesh.material = mat;
+  p.mesh.position.copy(pos); p.vel.copy(vel);
+  p.life = p.maxLife = life; p.size = size; p.grow = grow;
+}
+function updateParticles(dt) {
+  for (const p of particles) {
+    if (!p.alive) continue;
+    p.life -= dt;
+    if (p.life <= 0) { p.alive = false; p.mesh.visible = false; continue; }
+    const t = 1 - p.life / p.maxLife;
+    // gravity toward planet center for debris/fire
+    if (p.grow === 0) p.vel.addScaledVector(p.mesh.position.clone().normalize(), -20 * dt);
+    p.mesh.position.addScaledVector(p.vel, dt);
+    const s = p.size * (p.grow ? (1 + t * p.grow) * (1 - t) : (1 - t));
+    p.mesh.scale.setScalar(Math.max(s, 0.001));
+    p.mesh.rotation.x += dt * 2;
+  }
+}
+
+// ---------------------------------------------------------------- audio
+let audio = null, muted = false;
+function initAudio() {
+  if (audio) return;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination);
+  const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 500;
+  const eg = ctx.createGain(); eg.gain.value = 0.06;
+  const o1 = ctx.createOscillator(); o1.type = 'sawtooth';
+  const o2 = ctx.createOscillator(); o2.type = 'square'; o2.detune.value = 12;
+  o1.connect(filter); o2.connect(filter); filter.connect(eg); eg.connect(master);
+  o1.start(); o2.start();
+  const musicGain = ctx.createGain(); musicGain.gain.value = 0; musicGain.connect(master);
+  const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  audio = { ctx, master, o1, o2, filter, eg, musicGain, noiseBuf };
+  music.next = ctx.currentTime + 0.1;
+  setInterval(scheduleMusic, 40);
+}
+
+// ---------------------------------------------------------------- background music (procedural loop)
+let musicOn = true;
+const music = { next: 0, step: 0 };
+const BPM = 112, STEP = 60 / BPM / 2; // eighth notes
+// I – V – vi – IV in C major, one bar (8 steps) each
+const CHORDS = [[60, 64, 67], [59, 62, 67], [57, 60, 64], [57, 60, 65]];
+const BASS = [36, 43, 45, 41];
+const MELODY = [
+  72, null, 76, null, 79, null, 76, 74,
+  74, null, 71, null, 74, 76, 74, null,
+  72, null, 69, null, 72, null, 76, 74,
+  72, null, 69, null, 67, null, null, null,
+  76, null, 79, 81, 79, null, 76, null,
+  74, null, 79, null, 78, 79, 74, null,
+  72, 74, 76, null, 81, null, 79, 76,
+  77, null, 76, null, 72, null, null, null,
+];
+const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
+function tone(t, midi, dur, type, vol, cutoff = 4000, attack = 0.005) {
+  const { ctx, musicGain } = audio;
+  const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+  o.type = type; o.frequency.value = midiHz(midi);
+  f.type = 'lowpass'; f.frequency.value = cutoff;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+  o.connect(f); f.connect(g); g.connect(musicGain);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function kick(t) {
+  const { ctx, musicGain } = audio;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.setValueAtTime(130, t);
+  o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+  g.gain.setValueAtTime(0.35, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+  o.connect(g); g.connect(musicGain); o.start(t); o.stop(t + 0.22);
+}
+function hat(t, vol) {
+  const { ctx, musicGain, noiseBuf } = audio;
+  const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 7000;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  s.connect(f); f.connect(g); g.connect(musicGain); s.start(t); s.stop(t + 0.06);
+}
+function scheduleMusic() {
+  if (!audio) return;
+  const { ctx } = audio;
+  if (music.next < ctx.currentTime) music.next = ctx.currentTime + 0.05; // recover after tab was hidden
+  while (music.next < ctx.currentTime + 0.2) {
+    const t = music.next, s = music.step;
+    const bar = Math.floor(s / 8) % 4, beat = s % 8;
+    const chord = CHORDS[bar];
+    if (beat === 0) chord.forEach(n => tone(t, n, STEP * 8, 'sawtooth', 0.018, 900, 0.25)); // pad
+    const arp = [chord[0], chord[1], chord[2], chord[0] + 12];
+    tone(t, arp[[0, 1, 2, 3, 2, 1, 2, 1][beat]] + 12, STEP * 0.9, 'triangle', 0.045);         // arpeggio
+    if ([0, 3, 4, 6].includes(beat)) tone(t, BASS[bar], STEP * 1.5, 'triangle', 0.16, 600);  // bass
+    const mel = MELODY[s % MELODY.length];
+    if (mel) tone(t, mel, STEP * 1.8, 'square', 0.03, 2200);                                  // melody
+    if (beat % 4 === 0) kick(t);
+    hat(t, beat % 2 ? 0.05 : 0.025);
+    music.next += STEP;
+    music.step = (s + 1) % MELODY.length;
+  }
+}
+function updateAudio() {
+  if (!audio) return;
+  const t = audio.ctx.currentTime;
+  const engineOff = crashed || fuel <= 0;
+  const f = engineOff ? 0 : 45 + P.throttle * 55 + P.speed * 0.9;
+  audio.o1.frequency.setTargetAtTime(f || 1, t, 0.1);
+  audio.o2.frequency.setTargetAtTime((f || 1) * 0.5, t, 0.1);
+  audio.eg.gain.setTargetAtTime(engineOff || paused ? 0 : 0.035 + P.throttle * 0.04, t, 0.1);
+  audio.master.gain.setTargetAtTime(muted ? 0 : 0.5, t, 0.05);
+  audio.musicGain.gain.setTargetAtTime(musicOn && !paused ? 0.7 : 0, t, 0.3);
+}
+function chime() {
+  if (!audio) return;
+  const { ctx, master } = audio, t = ctx.currentTime;
+  [880, 1320, 1760].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t + i * 0.07);
+    g.gain.linearRampToValueAtTime(0.25, t + i * 0.07 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.4);
+    o.connect(g); g.connect(master); o.start(t + i * 0.07); o.stop(t + i * 0.07 + 0.45);
+  });
+}
+function fanfare() {
+  if (!audio) return;
+  const { ctx, master } = audio, t = ctx.currentTime;
+  [[523, 0], [659, 0.12], [784, 0.24], [1047, 0.36], [784, 0.52], [1047, 0.64]].forEach(([f, d]) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t + d);
+    g.gain.linearRampToValueAtTime(0.22, t + d + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d + (d > 0.6 ? 0.8 : 0.3));
+    o.connect(g); g.connect(master); o.start(t + d); o.stop(t + d + 0.9);
+  });
+}
+// slot-machine payout: a cascade of coin blips
+function jackpot() {
+  if (!audio) return;
+  const { ctx, master } = audio, t = ctx.currentTime;
+  for (let i = 0; i < 14; i++) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), d = i * 0.055;
+    o.type = 'square'; o.frequency.setValueAtTime(1568 + (i % 3) * 523, t + d);
+    o.frequency.setValueAtTime(2093 + (i % 2) * 300, t + d + 0.025);
+    g.gain.setValueAtTime(0.07, t + d);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d + 0.09);
+    o.connect(g); g.connect(master); o.start(t + d); o.stop(t + d + 0.1);
+  }
+}
+// refuel: a rising "glug" sweep
+function glug() {
+  if (!audio) return;
+  const { ctx, master } = audio, t = ctx.currentTime;
+  for (let i = 0; i < 3; i++) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), d = i * 0.09;
+    o.type = 'sine';
+    o.frequency.setValueAtTime(180 + i * 90, t + d);
+    o.frequency.exponentialRampToValueAtTime(520 + i * 160, t + d + 0.08);
+    g.gain.setValueAtTime(0.3, t + d);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d + 0.12);
+    o.connect(g); g.connect(master); o.start(t + d); o.stop(t + d + 0.13);
+  }
+}
+function lowFuelBeep() {
+  if (!audio) return;
+  const { ctx, master } = audio, t = ctx.currentTime;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'square'; o.frequency.value = 660;
+  g.gain.setValueAtTime(0.06, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.2);
+}
+function boom() {
+  if (!audio) return;
+  const { ctx, master } = audio, t = ctx.currentTime;
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 1.2, ctx.sampleRate), data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700;
+  const g = ctx.createGain(); g.gain.value = 0.9;
+  src.connect(f); f.connect(g); g.connect(master); src.start(t);
+}
+
+// ---------------------------------------------------------------- input
+const keys = {};
+const touch = { pitch: 0, roll: 0, thr: 0 };
+let invert = false, camMode = 0, paused = false, started = false;
+const CAM_NAMES = ['Chase', 'Cockpit', 'Far'];
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  if (!started) return;
+  if (demo) { endDemo(); return; }
+  if (e.code === 'KeyC') cycleCam();
+  if (e.code === 'KeyI') { invert = !invert; flash(invert ? 'Pitch inverted' : 'Pitch normal', 1); }
+  if (e.code === 'KeyM') { muted = !muted; flash(muted ? 'Muted' : 'Sound on', 1); }
+  if (e.code === 'KeyN') { musicOn = !musicOn; flash(musicOn ? 'Music on' : 'Music off', 1); }
+  if (e.code === 'KeyP' || e.code === 'Escape') { paused = !paused; flash(paused ? 'Paused' : '', paused ? 1e9 : 0); }
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+function cycleCam() { camMode = (camMode + 1) % 3; document.getElementById('view').textContent = CAM_NAMES[camMode]; }
+
+// touch controls
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) document.body.classList.add('touch');
+{
+  const joy = document.getElementById('joy'), knob = document.getElementById('knob');
+  let id = null, cx = 0, cy = 0;
+  const move = t => {
+    let dx = t.clientX - cx, dy = t.clientY - cy;
+    const len = Math.hypot(dx, dy), max = 50;
+    if (len > max) { dx *= max / len; dy *= max / len; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    touch.roll = dx / max; touch.pitch = dy / max;
+  };
+  joy.addEventListener('touchstart', e => {
+    const t = e.changedTouches[0], r = joy.getBoundingClientRect();
+    id = t.identifier; cx = r.left + r.width / 2; cy = r.top + r.height / 2; move(t); e.preventDefault();
+  }, { passive: false });
+  addEventListener('touchmove', e => { for (const t of e.changedTouches) if (t.identifier === id) move(t); e.preventDefault(); }, { passive: false });
+  addEventListener('touchend', e => {
+    for (const t of e.changedTouches) if (t.identifier === id) { id = null; touch.roll = touch.pitch = 0; knob.style.transform = ''; }
+  });
+  const hold = (el, v) => {
+    el.addEventListener('touchstart', e => { touch.thr = v; e.preventDefault(); }, { passive: false });
+    el.addEventListener('touchend', () => { touch.thr = 0; });
+  };
+  hold(document.getElementById('thrUp'), 1);
+  hold(document.getElementById('thrDn'), -1);
+  document.getElementById('camBtn').addEventListener('touchstart', e => { cycleCam(); e.preventDefault(); }, { passive: false });
+}
+
+// ---------------------------------------------------------------- HUD
+const $ = id => document.getElementById(id);
+const hud = { spd: $('spd'), alt: $('alt'), thr: $('thrFill'), board: $('board'), plane: $('planeName'), upg: $('upg'), score: $('scoreVal'), logos: $('logoVal'),
+  best: $('best'), msg: $('msg'), warn: $('warn'), fuelWarn: $('fuelWarn'), fuelFill: $('fuelFill'), fuelPct: $('fuelPct'), fuelRow: $('fuelRow') };
+let msgTimer = 0;
+function flash(text, secs = 1.5) { hud.msg.textContent = text; hud.msg.style.opacity = text ? 1 : 0; msgTimer = secs; }
+let fuel = FUEL_MAX, beepTimer = 0;
+function updateFuelHud() {
+  const pct = fuel / FUEL_MAX;
+  hud.fuelFill.style.width = `${pct * 100}%`;
+  hud.fuelFill.style.background = pct > 0.5 ? '#39ff14' : pct > LOW_FUEL / FUEL_MAX ? '#ffd23f' : '#ff4757';
+  hud.fuelPct.textContent = `${Math.ceil(fuel)}%`;
+  hud.fuelRow.classList.toggle('lowfuel', fuel < LOW_FUEL);
+}
+let delivered = 0, onBoard = 0, logoCount = 0, best = +(localStorage.getItem('poalim-best') || 0);
+hud.best.textContent = best;
+function updateBoardHud() {
+  hud.board.textContent = `🧑‍💼 ${onBoard}/${capacity()}`;
+  hud.plane.textContent = PLANE_LEVELS[planeLevel].name;
+  hud.upg.textContent = planeLevel === MAX_LEVEL ? 'MAX ✈'
+    : '⭐'.repeat(logoProgress) + '☆'.repeat(LOGOS_PER_UPGRADE - logoProgress) + ` → ${PLANE_LEVELS[planeLevel + 1].name}`;
+}
+updateBoardHud();
+
+// ---------------------------------------------------------------- flight model
+const P = { pos: new V(), quat: new THREE.Quaternion(), speed: 30, throttle: 0.6, pr: 0, rr: 0, yr: 0 };
+let crashed = false, crashTimer = 0, smokeTimer = 0;
+function respawn() {
+  const up = new V(0, 1, 0);
+  P.pos.copy(up).multiplyScalar(groundRadius(up) + 30);
+  // start pointed at Poalim Center
+  const toHQ = HQ_DIR.clone().addScaledVector(up, -HQ_DIR.dot(up)).normalize();
+  const z = toHQ.clone().negate(), x = new V().crossVectors(up, z);
+  P.quat.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, up, z));
+  P.speed = 30; P.throttle = 0.6; P.pr = P.rr = P.yr = 0;
+  crashed = false; plane.visible = true;
+  onBoard = 0; updateBoardHud();
+  fuel = FUEL_MAX; updateFuelHud();
+  camera.position.copy(P.pos).add(new V(0, 3, 10));
+}
+
+const fwd = new V(), right = new V(), pUp = new V(), up = new V(), tmp = new V();
+function updatePlane(dt) {
+  // input
+  const k = c => (keys[c] ? 1 : 0);
+  let inPitch, inRoll, inYaw, inThr;
+  if (demo) {
+    AP.climbOut -= dt;
+    ({ pitch: inPitch, roll: inRoll, yaw: inYaw, thr: inThr } = autopilot());
+    $('demoCaption').textContent = AP.caption;
+  } else {
+    inPitch = clamp(k('KeyS') + k('ArrowDown') - k('KeyW') - k('ArrowUp') + touch.pitch, -1, 1) * (invert ? -1 : 1);
+    inRoll = clamp(k('KeyD') + k('ArrowRight') - k('KeyA') - k('ArrowLeft') + touch.roll, -1, 1);
+    inYaw = k('KeyE') - k('KeyQ');
+    inThr = k('ShiftLeft') + k('ShiftRight') + k('KeyR') - k('ControlLeft') - k('ControlRight') - k('KeyF') + touch.thr;
+  }
+  P.throttle = clamp(P.throttle + clamp(inThr, -1, 1) * 0.5 * dt, 0, 1);
+
+  // fuel burn: more at high throttle and in bigger planes (a full tank lasts ~80 s at cruise in the Cessna)
+  if (fuel > 0) {
+    fuel = Math.max(0, fuel - (0.4 + P.throttle * 1.4) * (1 + planeLevel * 0.12) * dt);
+    if (fuel === 0) flash('⛽ OUT OF FUEL! Glide to a fuel can', 2.5);
+  }
+  const engineOn = fuel > 0;
+
+  P.pr = damp(P.pr, inPitch * 1.5, 6, dt);
+  P.rr = damp(P.rr, inRoll * 2.6, 6, dt);
+  P.yr = damp(P.yr, inYaw * 0.7, 4, dt);
+
+  // rotate in local frame
+  P.quat.multiply(_q.setFromAxisAngle(X_AXIS, P.pr * dt));
+  P.quat.multiply(_q.setFromAxisAngle(Z_AXIS, -P.rr * dt));
+  P.quat.multiply(_q.setFromAxisAngle(Y_AXIS, -P.yr * dt));
+
+  up.copy(P.pos).normalize();
+  fwd.set(0, 0, -1).applyQuaternion(P.quat);
+  right.set(1, 0, 0).applyQuaternion(P.quat);
+  pUp.set(0, 1, 0).applyQuaternion(P.quat);
+
+  // banking turns the plane around local "world up"; gentle auto-level when no roll input
+  const bank = Math.asin(clamp(right.dot(up), -1, 1)); // >0 = right wing up = banking left
+  P.quat.premultiply(_q.setFromAxisAngle(up, bank * 1.2 * dt));
+  if (Math.abs(inRoll) < 0.05 && pUp.dot(up) > 0) P.quat.multiply(_q.setFromAxisAngle(Z_AXIS, -bank * 0.9 * dt));
+
+  // speed: throttle target + gravity along the flight path
+  // with a dry tank the engine quits: speed only comes from diving
+  if (engineOn) P.speed += (14 + P.throttle * 36 - P.speed) * 0.6 * dt;
+  else P.speed -= P.speed * 0.12 * dt;
+  P.speed -= fwd.dot(up) * 14 * dt;
+  P.speed = clamp(P.speed, 0, 85);
+
+  // stall: below ~18 the nose drops and the plane sinks
+  const lift = clamp((P.speed - 10) / 8, 0, 1);
+  if (lift < 1) {
+    tmp.crossVectors(fwd, up).negate();
+    if (tmp.lengthSq() > 1e-6) P.quat.premultiply(_q.setFromAxisAngle(tmp.normalize(), (1 - lift) * 1.2 * dt));
+  }
+
+  // move, then parallel-transport the orientation so "level" follows the curved surface
+  const oldUp = up.clone();
+  P.pos.addScaledVector(fwd, P.speed * dt).addScaledVector(up, -(1 - lift) * 10 * dt);
+  const alt = P.pos.length();
+  if (alt > R + MAX_ALT) P.pos.setLength(R + MAX_ALT);
+  up.copy(P.pos).normalize();
+  P.quat.premultiply(_q.setFromUnitVectors(oldUp, up)).normalize();
+
+  // collision
+  const gr = groundRadius(up);
+  const agl = P.pos.length() - gr;
+  const sz = planeSize();
+  if (agl < 0.5 * sz) return crash();
+  for (const t of towers) {
+    if (t.pos.distanceToSquared(P.pos) > t.r2) continue;
+    tmp.copy(P.pos).applyMatrix4(t.inv);
+    const m = 0.5 * sz;
+    if (Math.abs(tmp.x) < t.hx + m && Math.abs(tmp.z) < t.hz + m && tmp.y > t.y0 - m && tmp.y < t.y1 + m) return crash();
+  }
+  hud.warn.style.display = agl < 5 && fwd.dot(up) < -0.15 ? 'block' : 'none';
+
+  // pick up workers: fly low over a green beacon
+  for (const s of stations) {
+    if (s.waiting === 0 || up.angleTo(s.dir) * R > 7 || agl > 18) continue;
+    const take = Math.min(s.waiting, capacity() - onBoard);
+    if (take === 0) { if (msgTimer <= 0) flash('המטוס מלא! טסים לפועלים סנטר', 1.5); continue; }
+    onBoard += take;
+    setWaiting(s, s.waiting - take);
+    updateBoardHud();
+    flash(onBoard === capacity() ? 'המטוס מלא! טסים לפועלים סנטר ✈' : `+${take} עובדים עלו למטוס`, 1.6);
+    chime();
+  }
+
+  // deliver them through the arrival gate at Poalim Center
+  if (onBoard > 0 && P.pos.distanceTo(HQ.gatePos) < 7.5 + (sz - 1) * 2) {
+    const n = onBoard;
+    delivered += n; onBoard = 0;
+    hud.score.textContent = delivered;
+    updateBoardHud();
+    setPeopleCount(HQ.plaza, Math.min(delivered, HQ.capacity));
+    if (delivered > best) { best = delivered; hud.best.textContent = best; localStorage.setItem('poalim-best', best); }
+    flash(`🎰 JACKPOT! ${n} עובדים הגיעו לפועלים סנטר!`, 2.5);
+    fanfare();
+    jackpot();
+    for (let i = 0; i < 40; i++) spawnParticle(HQ.gatePos, randomDir().multiplyScalar(4 + Math.random() * 10), coinMat, 1.6, 0.9, 0);
+    AP.climbOut = 4;
+    for (let i = 0; i < 60; i++) spawnParticle(HQ.gatePos, randomDir().multiplyScalar(5 + Math.random() * 8), confettiMats[i % confettiMats.length], 1.4, 1, 1);
+  }
+
+  // bonus logos
+  for (const l of logos) {
+    const lr = LOGO_RADIUS + (sz - 1) * 1.5;
+    if (l.position.distanceToSquared(P.pos) < lr * lr) {
+      logoCount++; hud.logos.textContent = logoCount;
+      if (planeLevel < MAX_LEVEL && ++logoProgress >= LOGOS_PER_UPGRADE) {
+        logoProgress = 0;
+        setPlaneLevel(planeLevel + 1);
+        upgradeAnim = 0;
+        const lv = PLANE_LEVELS[planeLevel];
+        flash(`✈ UPGRADE! ${lv.name} · ${lv.seats} seats`, 2.8);
+        fanfare();
+        for (let i = 0; i < 50; i++) spawnParticle(P.pos, randomDir().multiplyScalar(4 + Math.random() * 6), confettiMats[i % confettiMats.length], 1.2, 1, 1);
+      } else {
+        flash(planeLevel < MAX_LEVEL ? `+1 Logo! (${logoProgress}/${LOGOS_PER_UPGRADE} to upgrade)` : '+1 Logo!', 1.2);
+        chime();
+      }
+      updateBoardHud();
+      for (let i = 0; i < 16; i++) spawnParticle(l.position, randomDir().multiplyScalar(6), logoBurstMat, 0.8, 1.2, 1);
+      placeLogo(l);
+    }
+  }
+
+  // fuel cans
+  for (const f of fuelCans) {
+    const fr = FUEL_RADIUS + (sz - 1) * 1.5;
+    if (f.position.distanceToSquared(P.pos) < fr * fr) {
+      const was = fuel;
+      fuel = Math.min(FUEL_MAX, fuel + FUEL_PER_CAN);
+      flash(was === 0 ? '⛽ ENGINE RESTART! +FUEL' : `⛽ +${Math.round(fuel - was)}% FUEL`, 1.4);
+      glug();
+      for (let i = 0; i < 18; i++) spawnParticle(f.position, randomDir().multiplyScalar(6), fuelBurstMat, 0.8, 1.1, 1);
+      placeFuelCan(f);
+    }
+  }
+  updateFuelHud();
+  hud.fuelWarn.style.display = fuel < LOW_FUEL ? 'block' : 'none';
+  hud.fuelWarn.textContent = fuel > 0 ? '⛽ LOW FUEL – GRAB A FUEL CAN!' : '⛽ ENGINE OUT – DIVE & GLIDE TO FUEL!';
+  if (fuel < LOW_FUEL && (beepTimer -= dt) <= 0) { beepTimer = fuel > 0 ? 1.2 : 0.6; lowFuelBeep(); }
+
+  // smoke trail (none when the engine is dead)
+  smokeTimer -= dt;
+  if (smokeTimer <= 0 && engineOn) {
+    smokeTimer = 0.04;
+    tmp.copy(P.pos).addScaledVector(fwd, -1.7 * sz);
+    spawnParticle(tmp, new V(), smokeMat, 1.1, (0.9 + P.throttle * 0.6) * Math.sqrt(sz), 1.5);
+  }
+
+  // HUD
+  hud.spd.textContent = Math.round(P.speed * 3);
+  hud.alt.textContent = Math.round((P.pos.length() - R) * 50);
+  hud.thr.style.width = `${P.throttle * 100}%`;
+}
+
+function crash() {
+  crashed = true; crashTimer = 2.5;
+  plane.visible = false;
+  hud.warn.style.display = 'none';
+  hud.fuelWarn.style.display = 'none';
+  flash(fuel <= 0 ? '💥 CRASHED – OUT OF FUEL!' : onBoard ? '💥 CRASHED! The workers took the bus instead' : '💥 CRASHED!', 2.3);
+  boom();
+  const n = P.pos.clone().normalize();
+  for (let i = 0; i < 40; i++) {
+    const v = randomDir().multiplyScalar(4 + Math.random() * 8).addScaledVector(n, 6);
+    spawnParticle(P.pos, v, i % 3 ? fireMat : debrisMat, 1 + Math.random() * 1.2, 1.2 + Math.random(), 0);
+  }
+  for (let i = 0; i < 20; i++) spawnParticle(P.pos, randomDir().multiplyScalar(2).addScaledVector(n, 3), smokeMat, 2.5, 3, 2);
+}
+
+// ---------------------------------------------------------------- mission
+function nearestFuelCan() {
+  let best = null, bd = Infinity;
+  for (const f of fuelCans) { const d = f.position.distanceToSquared(P.pos); if (d < bd) { bd = d; best = f; } }
+  return best;
+}
+function missionTarget() {
+  if (fuel < (demo ? 35 : LOW_FUEL)) return { type: 'fuel', pos: nearestFuelCan().position };
+  if (demo && onBoard === 0 && delivered > 0 && planeLevel < MAX_LEVEL) {
+    let best = null, bd = Infinity;
+    for (const l of logos) { const d = l.position.distanceToSquared(P.pos); if (d < bd) { bd = d; best = l; } }
+    return { type: 'logo', pos: best.position };
+  }
+  let st = null, nd = Infinity;
+  if (onBoard < capacity()) {
+    for (const s of stations) {
+      if (!s.waiting) continue;
+      const d = s.group.position.distanceToSquared(P.pos);
+      if (d < nd) { nd = d; st = s; }
+    }
+  }
+  const goHQ = onBoard > 0 && (!st || onBoard === capacity() || HQ.gatePos.distanceToSquared(P.pos) < nd);
+  return goHQ || !st ? { type: 'hq', pos: HQ.gatePos } : { type: 'station', pos: st.group.position };
+}
+
+// ---------------------------------------------------------------- demo autopilot
+let demo = false;
+const AP = { hqStage: 0, hqSide: 1, caption: '', climbOut: 0 };
+const _ap = new V();
+// highest thing (ground or skyscraper, plus margin) under point q, as a radius from the planet centre
+function obstacleTop(q) {
+  let top = groundRadius(_ap.copy(q).normalize());
+  for (const t of towers) {
+    _ap.copy(q).applyMatrix4(t.inv);
+    if (Math.abs(_ap.x) < t.hx + 5 && Math.abs(_ap.z) < t.hz + 5) top = Math.max(top, q.length() - _ap.y + t.y1 + 3);
+  }
+  return top;
+}
+function autopilot() {
+  const upv = P.pos.clone().normalize();
+  const f = new V(0, 0, -1).applyQuaternion(P.quat), r = new V(1, 0, 0).applyQuaternion(P.quat);
+  const mt = missionTarget();
+  let aim;
+  if (mt.type === 'fuel') {
+    AP.hqStage = 0;
+    aim = mt.pos;
+    AP.caption = fuel > 0 ? `⛽ Fuel at ${Math.ceil(fuel)}% – grabbing a fuel can` : '⛽ Engine out! Gliding to the nearest fuel can';
+  } else if (mt.type === 'logo') {
+    AP.hqStage = 0;
+    aim = mt.pos;
+    AP.caption = `⭐ Collecting logos to upgrade the plane (${logoProgress}/${LOGOS_PER_UPGRADE}) → ${PLANE_LEVELS[planeLevel + 1].name}`;
+  } else if (mt.type === 'station') {
+    AP.hqStage = 0;
+    aim = mt.pos.clone().addScaledVector(mt.pos.clone().normalize(), 8);
+    AP.caption = onBoard === 0
+      ? '① Fly low over a green beacon – Bank Hapoalim workers are waiting there'
+      : `② Picking up more workers on the way (${onBoard}/${capacity()} on board)`;
+  } else {
+    // line up along the building front, then fly through the arrival gate
+    const local = P.pos.clone().applyMatrix4(HQ.inv);
+    if (AP.hqStage === 0) { AP.hqSide = local.x >= 0 ? 1 : -1; AP.hqStage = 1; }
+    const wp = new V(AP.hqSide * 85, GATE_Y, GATE_Z).applyMatrix4(HQ.group.matrixWorld);
+    if (AP.hqStage === 1 && P.pos.distanceTo(wp) < 20) AP.hqStage = 2;
+    if (AP.hqStage === 2 && local.x * AP.hqSide < -25) AP.hqStage = 1; // missed it – go around
+    aim = AP.hqStage === 1 ? wp : HQ.gatePos;
+    AP.caption = AP.hqStage === 1
+      ? `③ ${onBoard} workers on board – flying to Poalim Center`
+      : '④ Lining up with the red arrival gate…';
+  }
+
+  // heading: bank toward the target along the planet surface
+  const toAim = aim.clone().sub(P.pos);
+  const hT = toAim.clone().addScaledVector(upv, -toAim.dot(upv)).normalize();
+  const fH = f.clone().addScaledVector(upv, -f.dot(upv)).normalize();
+  const horiz = upv.angleTo(_ap.copy(aim).normalize()) * R;
+  let err = Math.atan2(new V().crossVectors(fH, hT).dot(upv), fH.dot(hT)); // + = target is to the left
+  // target too close to turn into (it would sit inside our turning circle): fly straight out, then come back around
+  if (horiz < 45 && Math.abs(err) > 1.2) err = 0;
+  // just delivered: climb straight out over Poalim Center before turning
+  if (AP.climbOut > 0) { err = 0; AP.caption = '🎉 Delivered! Climbing out for the next pickup'; }
+  const bank = Math.asin(clamp(r.dot(upv), -1, 1));
+  const roll = clamp((bank - clamp(err * 1.6, -0.85, 0.85)) * 3, -1, 1);
+
+  // altitude: cruise high when far, descend to the target when close, never below terrain/towers ahead
+  let wantAlt = horiz > 50 ? Math.max(aim.length(), R + 35) : aim.length();
+  if (AP.climbOut > 0) wantAlt = Math.max(wantAlt, HQ.topR + 12);
+  for (const d of [8, 18, 30, 45, 60]) wantAlt = Math.max(wantAlt, obstacleTop(P.pos.clone().addScaledVector(fH, d)) + 7);
+  wantAlt = Math.min(wantAlt, R + MAX_ALT - 5);
+  const gamma = Math.asin(clamp(f.dot(upv), -1, 1));
+  let wantGamma = clamp((wantAlt - P.pos.length()) * 0.05, -0.3, 0.45);
+  // engine out: keep the nose down enough to hold gliding speed
+  if (fuel <= 0) wantGamma = Math.min(wantGamma, P.speed < 22 ? -0.4 : -0.22);
+  const pitch = clamp((wantGamma - gamma) * 4, -1, 1);
+
+  return { pitch, roll, yaw: 0, thr: clamp((0.7 - P.throttle) * 5, -1, 1) };
+}
+function startDemo() {
+  demo = true;
+  camMode = 0; document.getElementById('view').textContent = CAM_NAMES[0];
+  $('demoBar').style.display = 'block';
+}
+function endDemo() {
+  if (!demo) return;
+  demo = false;
+  $('demoBar').style.display = 'none';
+  flash('You have control! ✈', 1.5);
+}
+
+// ---------------------------------------------------------------- camera
+const camUp = new V(), look = new V(), desired = new V();
+function updateCamera(dt) {
+  up.copy(P.pos).normalize();
+  fwd.set(0, 0, -1).applyQuaternion(P.quat);
+  pUp.set(0, 1, 0).applyQuaternion(P.quat);
+  if (crashed) {
+    look.copy(P.pos);
+    camera.up.copy(up);
+    camera.lookAt(look);
+    return;
+  }
+  if (camMode === 0) {
+    camUp.copy(up).lerp(pUp, 0.35).normalize();
+    const sz = planeSize();
+    desired.copy(P.pos).addScaledVector(fwd, -9 * sz).addScaledVector(camUp, 3 * sz);
+    camera.position.lerp(desired, 1 - Math.exp(-dt * 10));
+    camera.up.copy(camUp);
+    look.copy(P.pos).addScaledVector(fwd, 6 * sz);
+  } else if (camMode === 1) {
+    const [cf, cu] = PLANE_LEVELS[planeLevel].cockpit;
+    camera.position.copy(P.pos).addScaledVector(pUp, cu).addScaledVector(fwd, cf);
+    camera.up.copy(pUp);
+    look.copy(camera.position).addScaledVector(fwd, 10);
+  } else {
+    const k = 0.6 + 0.4 * planeSize();
+    desired.copy(P.pos).addScaledVector(up, 45 * k).addScaledVector(fwd, -35 * k);
+    camera.position.lerp(desired, 1 - Math.exp(-dt * 4));
+    camera.up.copy(fwd);
+    look.copy(P.pos);
+  }
+  camera.lookAt(look);
+
+  // mission arrow: green → nearest waiting workers, red → Poalim Center
+  const mt = missionTarget(), target = mt.pos;
+  arrow.material.color.setHex({ hq: 0xe42328, station: 0x2ecc71, logo: 0xffd166, fuel: 0xff9f1a }[mt.type]);
+  const camF = tmp.set(0, 0, -1).applyQuaternion(camera.quaternion);
+  const camU = new V(0, 1, 0).applyQuaternion(camera.quaternion);
+  arrow.position.copy(camera.position).addScaledVector(camF, 6).addScaledVector(camU, 2.1);
+  arrow.quaternion.setFromUnitVectors(Y_AXIS, target.clone().sub(P.pos).normalize());
+}
+
+// ---------------------------------------------------------------- main loop
+const clock = new THREE.Clock();
+let time = 0;
+respawn();
+updateCamera(0.016);
+
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (!paused) {
+    time += dt;
+    if (started) {
+      if (!crashed) updatePlane(dt);
+      else if ((crashTimer -= dt) <= 0) { respawn(); flash('Ready!', 1); }
+    }
+    plane.position.copy(P.pos);
+    plane.quaternion.copy(P.quat);
+    if (fuel > 0 || !started) for (const p of planeModels[planeLevel].userData.props) p.rotation.z += dt * (10 + P.throttle * 40);
+    if (upgradeAnim < 1) upgradeAnim = Math.min(1, upgradeAnim + dt / 0.9);
+    plane.scale.setScalar(upgradeScale(upgradeAnim));
+    updateCamera(dt);
+    updateParticles(dt);
+    updateOcean(time);
+    cloudPivot.rotation.y += dt * 0.008;
+    moonPivot.rotation.y += dt * 0.02;
+    const pulse = 1 + Math.sin(time * 4) * 0.06;
+    for (const l of logos) { l.scale.setScalar(pulse); l.userData.spin.rotation.y += dt * 1.2; }
+    for (const e of roofEmblems) e.rotation.y += dt * 0.8;
+    for (const f of fuelCans) { f.scale.setScalar(pulse); f.userData.spin.rotation.y += dt * 1.6; }
+    fuelHaloMat.opacity = 0.6 + Math.sin(time * 6) * 0.3;
+    // Vegas: pulsing neon, sweeping searchlights, chasing marquee bulbs
+    for (const m of NEON) { const { h, s, l } = m.userData.hsl; m.color.setHSL(h, s, l * (0.7 + 0.3 * Math.sin(time * 2.5 + m.userData.phase))); }
+    for (const sl of searchlights) {
+      sl.pivot.rotation.x = Math.sin(time * sl.speed + sl.phase) * 0.45;
+      sl.pivot.rotation.z = Math.cos(time * sl.speed * 0.8 + sl.phase) * 0.45;
+    }
+    const chase = Math.floor(time * 8) % 3;
+    for (const b of HQ.bulbs) b.mesh.material = (b.i + chase) % 3 === 0 ? bulbOff : bulbOn;
+    HQ.beam.material.opacity = 0.25 + Math.sin(time * 3) * 0.1;
+    stationBeamMat.opacity = 0.25 + Math.sin(time * 3 + 1) * 0.1;
+    for (const s of stations) if (!s.waiting && (s.timer -= dt) <= 0) setWaiting(s, 2 + (Math.random() * (MAX_WAITING - 1) | 0));
+    if (msgTimer > 0 && (msgTimer -= dt) <= 0) hud.msg.style.opacity = 0;
+  }
+  updateAudio();
+  renderer.render(scene, camera);
+});
+
+addEventListener('pointerdown', () => { if (started) endDemo(); });
+$('demoBtn').addEventListener('click', () => {
+  $('overlay').style.display = 'none';
+  started = true;
+  initAudio();
+  respawn();
+  startDemo();
+  flash('DEMO · טסים לפועלים סנטר', 2.5);
+});
+$('startBtn').addEventListener('click', () => {
+  $('overlay').style.display = 'none';
+  started = true;
+  initAudio();
+  flash('טסים לפועלים סנטר! ✈  Pick up workers at the green beacons', 3);
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

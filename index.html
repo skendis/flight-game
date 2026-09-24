@@ -9,7 +9,8 @@
 <style>
   :root { --pink: #ff2bd6; --cyan: #00f0ff; --gold: #ffd23f; --neon-green: #39ff14; --night: #1a0933; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
+  canvas, #touch { touch-action: none; }
   canvas { display: block; }
   .hud { position: fixed; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
   #stats { top: 14px; left: 14px; background: rgba(25,0,45,.6); padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.6; min-width: 170px;
@@ -30,9 +31,10 @@
   #fuelWarn { top: 65%; color: #ffa502; text-shadow: 0 0 10px #ffa502; }
   @keyframes blink { 50% { opacity: 0; } }
   #hint { bottom: 12px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .85; }
-  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; overflow: auto;
+  /* margin:auto on the panel centres it but lets it scroll from the top when it's taller than the screen */
+  #overlay { position: fixed; inset: 0; display: flex; align-items: flex-start; z-index: 10; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
     background: radial-gradient(circle at 50% 30%, rgba(120,20,140,.65), rgba(10,0,30,.92)); }
-  #panel { color: #fff; text-align: center; max-width: 560px; padding: 26px 28px; margin: 16px; border-radius: 22px; background: rgba(20,0,40,.55);
+  #panel { color: #fff; text-align: center; max-width: 560px; padding: 26px 28px; margin: auto; flex-shrink: 0; border-radius: 22px; background: rgba(20,0,40,.55);
     border: 7px dotted var(--gold); animation: marquee 0.6s steps(2) infinite; box-shadow: 0 0 24px rgba(255,210,63,.55), inset 0 0 24px rgba(255,43,214,.35); }
   @keyframes marquee { 0% { border-color: var(--gold); } 50% { border-color: #fff6c9; } }
   #panel .vegas { font-family: Monoton, Bungee, system-ui, sans-serif; font-size: 30px; color: var(--cyan); letter-spacing: 4px; margin-bottom: 4px;
@@ -45,6 +47,17 @@
   #board { letter-spacing: 1px; }
   #panel table { margin: 0 auto 22px; border-collapse: collapse; font-size: 14px; text-align: left; }
   #panel td { padding: 3px 10px; }
+  .touch #panel table { display: none; } /* keyboard controls are irrelevant on touch screens */
+  @media (max-width: 600px), (max-height: 600px) {
+    #panel { padding: 18px 16px; margin: 12px auto; border-width: 5px; width: calc(100% - 24px); }
+    #panel .vegas { font-size: 22px; letter-spacing: 2px; }
+    #panel h1 { font-size: 28px; }
+    #panel .sub { font-size: 12px; letter-spacing: 2px; margin-bottom: 10px; }
+    #panel p { font-size: 14px; margin-bottom: 10px; }
+    #panel .heb { font-size: 15px; }
+    #startBtn { font-size: 16px; padding: 12px 24px; }
+    #demoBtn { font-size: 14px; padding: 11px 20px; margin-left: 6px; }
+  }
   #panel td:first-child { font-weight: 700; color: var(--gold); text-align: right; }
   #startBtn { font-family: Bungee, system-ui, sans-serif; font-size: 19px; padding: 14px 36px; border: 0; border-radius: 40px; background: linear-gradient(180deg, #ffe680, #ffb000); color: #3a0a3a; cursor: pointer;
     box-shadow: 0 0 18px rgba(255,210,63,.8), 0 6px 20px rgba(0,0,0,.4); }
@@ -1374,7 +1387,10 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) document.body.clas
     const t = e.changedTouches[0], r = joy.getBoundingClientRect();
     id = t.identifier; cx = r.left + r.width / 2; cy = r.top + r.height / 2; move(t); e.preventDefault();
   }, { passive: false });
-  addEventListener('touchmove', e => { for (const t of e.changedTouches) if (t.identifier === id) move(t); e.preventDefault(); }, { passive: false });
+  // only swallow the gesture while steering with the joystick, so the intro screen can still scroll
+  addEventListener('touchmove', e => {
+    for (const t of e.changedTouches) if (t.identifier === id) { move(t); e.preventDefault(); }
+  }, { passive: false });
   addEventListener('touchend', e => {
     for (const t of e.changedTouches) if (t.identifier === id) { id = null; touch.roll = touch.pitch = 0; knob.style.transform = ''; }
   });
